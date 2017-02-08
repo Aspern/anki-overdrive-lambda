@@ -10,11 +10,11 @@ public class PropertiesSettings implements Settings {
 
     private final Properties properties;
 
-    protected PropertiesSettings(Properties properties) {
+    public PropertiesSettings(Properties properties) {
         this.properties = properties;
     }
 
-    protected PropertiesSettings(String resource) {
+    public PropertiesSettings(String resource) {
         this(new Properties());
 
         try (InputStream in = getClass().getClassLoader().getResourceAsStream(resource)) {
