@@ -1,31 +1,22 @@
 package de.msg.iot.anki.data;
 
-import javax.persistence.*;
-import java.util.Date;
 
-@MappedSuperclass
-public class VehicleMessage {
+import javax.persistence.*;
+
+@Entity
+public class Distance {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long uuid;
-    private Date timestamp;
-    private int id;
+    private long id;
     private String vehicleId;
+    private float distance;
 
-    public Date getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(Date timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    public int getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(long id) {
         this.id = id;
     }
 
@@ -35,5 +26,13 @@ public class VehicleMessage {
 
     public void setVehicleId(String vehicleId) {
         this.vehicleId = vehicleId;
+    }
+
+    public float getDistance() {
+        return distance;
+    }
+
+    public void setDistance(float distance) {
+        this.distance = distance;
     }
 }
