@@ -4,7 +4,8 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
 
-public interface MasterDataSet extends  AutoCloseable{
+public interface MasterDataSet extends  AutoCloseable
+{
 
     <D> void store(D data);
 

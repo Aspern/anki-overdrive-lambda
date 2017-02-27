@@ -21,7 +21,7 @@ public class Bootstrap {
     private static final int[] pieces = {
             33,
             18,
-            20,
+            23,
             39,
             17,
             20,
