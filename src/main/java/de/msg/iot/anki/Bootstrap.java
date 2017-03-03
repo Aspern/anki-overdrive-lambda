@@ -31,7 +31,7 @@ public class Bootstrap {
     public static void main(String[] args) {
         final Scanner in = new Scanner(System.in);
         injector = Guice.createInjector(Arrays.asList(
-                new MysqlLambdaArchitecture()
+                new ElasticLambdaArchitecture()
         ));
 
         startUp();
@@ -75,13 +75,13 @@ public class Bootstrap {
     private static void startUp() {
         logger.info("Starting lambda architecture using [" + MysqlLambdaArchitecture.class.getName() + "].");
         startConnectorServer();
-        startMachineLearningServer();
+       // startMachineLearningServer();
     }
 
     private static void shutdown() {
         logger.info("Shutting down lambda architecture.");
         connectorServer.stop();
-        machineLearningServer.stop();
+     //   machineLearningServer.stop();
     }
 
     private static void startConnectorServer() {

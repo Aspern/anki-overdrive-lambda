@@ -2,6 +2,7 @@ package de.msg.iot.anki.batchlayer.masterdata.mysql;
 
 import com.google.inject.Inject;
 import de.msg.iot.anki.batchlayer.masterdata.MasterDataSet;
+import de.msg.iot.anki.data.Data;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -24,14 +25,14 @@ public class MysqlMasterDataSet implements MasterDataSet {
 
 
     @Override
-    public <D> void store(D data) {
+    public <D extends Data> void store(D data) {
         this.manager.getTransaction().begin();
         this.manager.persist(data);
         this.manager.getTransaction().commit();
     }
 
     @Override
-    public <D> void remove(D data) {
+    public <D extends Data> void remove(D data) {
         this.manager.getTransaction().begin();
         this.manager.remove(data);
         this.manager.flush();
@@ -39,12 +40,12 @@ public class MysqlMasterDataSet implements MasterDataSet {
     }
 
     @Override
-    public <D> D find(long id, Class<D> type) {
+    public <D extends Data> D find(String id, Class<D> type) {
         return this.manager.find(type, id);
     }
 
     @Override
-    public <D> Collection<D> all(Class<D> type) {
+    public <D extends Data> Collection<D> all(Class<D> type) {
         final String table = type.getSimpleName();
         return this.manager
                 .createQuery("select d from " + table + " d")
@@ -52,14 +53,14 @@ public class MysqlMasterDataSet implements MasterDataSet {
     }
 
     @Override
-    public <D> Collection<D> range(Date from, Date to, Class<D> type) {
+    public <D extends Data> Collection<D> range(Date from, Date to, Class<D> type) {
         final String table = type.getSimpleName();
         return this.manager.createQuery("select d from " + table + " d where d.timestamp >= " + from.getTime() + " and d.timestamp <= " + to.getTime()).
                 getResultList();
     }
 
     @Override
-    public <D> Collection<D> query(Map<String, Object> attributes, Class<D> type) {
+    public <D extends Data> Collection<D> query(Map<String, Object> attributes, Class<D> type) {
         final String table = type.getSimpleName();
         final StringBuilder queryString = new StringBuilder();
         queryString.append("select d from " + table + " d");

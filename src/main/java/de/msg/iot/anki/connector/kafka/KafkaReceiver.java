@@ -3,6 +3,7 @@ package de.msg.iot.anki.connector.kafka;
 import com.google.gson.Gson;
 import com.google.inject.Inject;
 import de.msg.iot.anki.connector.Receiver;
+import de.msg.iot.anki.data.Data;
 import de.msg.iot.anki.data.PositionUpdateMessage;
 import de.msg.iot.anki.settings.Settings;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -14,7 +15,7 @@ import java.util.Properties;
 import java.util.function.Consumer;
 
 
-public class KafkaReceiver implements Receiver<PositionUpdateMessage> {
+public class KafkaReceiver implements Receiver {
 
     private final KafkaConsumer<String, String> kafkaConsumer;
     private final Gson serializer = new Gson();
@@ -40,9 +41,9 @@ public class KafkaReceiver implements Receiver<PositionUpdateMessage> {
     }
 
     @Override
-    public Receiver onReceive(Consumer<PositionUpdateMessage> handler) {
-        this.handler = handler;
-        return this;
+    public Receiver onReceive(Consumer consumer) {
+        this.handler = consumer;
+        return null;
     }
 
     @Override
