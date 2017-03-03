@@ -1,19 +1,12 @@
 package de.msg.iot.anki.scenario;
 
 
-import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
-import de.msg.iot.anki.MysqlLambdaArchitecture;
 import de.msg.iot.anki.controller.VehicleController;
 import de.msg.iot.anki.settings.Settings;
 
-import java.util.Arrays;
-import java.util.Scanner;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-public class AntiCollision implements Runnable {
+public class AntiCollision implements Runnable, Scenario {
 
     private VehicleController skull;
     private VehicleController groundShock;
@@ -52,17 +45,13 @@ public class AntiCollision implements Runnable {
         }
     }
 
-    public static void main(String[] args) {
-        ExecutorService pool = Executors.newSingleThreadExecutor();
+    @Override
+    public void start() {
+        
+    }
 
-        Injector injector = Guice.createInjector(Arrays.asList(
-                new MysqlLambdaArchitecture()
-        ));
+    @Override
+    public void stop() {
 
-        pool.execute(injector.getInstance(AntiCollision.class));
-        Scanner scanner = new Scanner(System.in);
-
-        scanner.next();
-        pool.shutdownNow();
     }
 }
