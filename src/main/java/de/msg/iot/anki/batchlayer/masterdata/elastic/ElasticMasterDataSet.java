@@ -26,7 +26,6 @@ import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-
 public class ElasticMasterDataSet implements MasterDataSet {
 
     private final Client client;
