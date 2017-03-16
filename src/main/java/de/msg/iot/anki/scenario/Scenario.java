@@ -1,8 +1,9 @@
 package de.msg.iot.anki.scenario;
 
-public interface Scenario {
+import java.util.concurrent.Callable;
 
-    void start();
+public interface Scenario extends Callable<Void> {
 
-    void stop();
+    String getName();
+
 }
