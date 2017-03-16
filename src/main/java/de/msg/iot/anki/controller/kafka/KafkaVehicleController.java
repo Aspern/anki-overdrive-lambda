@@ -1,9 +1,9 @@
 package de.msg.iot.anki.controller.kafka;
 
 import com.google.gson.Gson;
-import com.google.inject.Inject;
 import de.msg.iot.anki.controller.VehicleController;
 import de.msg.iot.anki.settings.Settings;
+import de.msg.iot.anki.settings.properties.PropertiesSettings;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
@@ -14,17 +14,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class KafkaVehicleController implements VehicleController {
 
-    private final Settings settings;
     private final Gson serializer = new Gson();
     private final KafkaProducer<String, String> producer;
     private final AtomicInteger counter = new AtomicInteger();
 
-    private String vehicleId;
+    private String uuid;
 
-
-    @Inject
-    public KafkaVehicleController(Settings settings) {
-        this.settings = settings;
+    public KafkaVehicleController(String uuid) {
+        final Settings settings = new PropertiesSettings("settings.properties");
+        this.uuid = uuid;
 
         Properties properties = new Properties();
         properties.put("bootstrap.servers", settings.get("kafka.server"));
@@ -33,10 +31,6 @@ public class KafkaVehicleController implements VehicleController {
         properties.put("value.serializer", settings.get("kafka.value.serializer"));
 
         this.producer = new KafkaProducer<>(properties);
-    }
-
-    public void setVehicleId(final String vehicleId) {
-        this.vehicleId = vehicleId;
     }
 
     @Override
@@ -81,7 +75,7 @@ public class KafkaVehicleController implements VehicleController {
 
     private void sendMessage(Command command) {
         this.producer.send(new ProducerRecord<>(
-                vehicleId,
+                uuid,
                 "Message-" + counter.getAndIncrement(),
                 serializer.toJson(command)
         ));

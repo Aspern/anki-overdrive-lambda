@@ -8,8 +8,6 @@ public interface VehicleController {
 
     void setSpeed(int speed, int acceleration);
 
-    void setVehicleId(String id);
-
     default void setSpeed(int speed) {
         setSpeed(speed, 500);
     }
