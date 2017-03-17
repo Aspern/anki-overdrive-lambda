@@ -1,16 +1,18 @@
 package de.msg.iot.anki.data;
 
 import javax.persistence.*;
+import javax.persistence.Entity;
 import java.util.Date;
 import java.util.List;
 
 @Entity
-public class PositionUpdateMessage {
+public class PositionUpdateMessage implements Data {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long uuid;
+    private String id;
     private Date timestamp;
-    private int id;
+    private int messageId;
     private String vehicleId;
     private int location;
     private int piece;
@@ -23,15 +25,17 @@ public class PositionUpdateMessage {
     private byte lastExecLaneChangeCmd;
     private int lastDesiredHorizontalSpeed;
     private int lastDesiredSpeed;
+
     @OneToMany
     private List<Distance> distances;
 
-    public long getUuid() {
-        return uuid;
+
+    public String getId() {
+        return id;
     }
 
-    public void setUuid(long uuid) {
-        this.uuid = uuid;
+    public void setId(String id) {
+        this.id = id;
     }
 
     public Date getTimestamp() {
@@ -42,12 +46,12 @@ public class PositionUpdateMessage {
         this.timestamp = timestamp;
     }
 
-    public int getId() {
-        return id;
+    public int getMessageId() {
+        return messageId;
     }
 
-    public void setId(int id) {
-        this.id = id;
+    public void setMessageId(int messageId) {
+        this.messageId = messageId;
     }
 
     public String getVehicleId() {
@@ -72,6 +76,22 @@ public class PositionUpdateMessage {
 
     public void setPiece(int piece) {
         this.piece = piece;
+    }
+
+    public int getPosition() {
+        return position;
+    }
+
+    public void setPosition(int position) {
+        this.position = position;
+    }
+
+    public int getLane() {
+        return lane;
+    }
+
+    public void setLane(int lane) {
+        this.lane = lane;
     }
 
     public float getOffset() {
@@ -136,21 +156,5 @@ public class PositionUpdateMessage {
 
     public void setDistances(List<Distance> distances) {
         this.distances = distances;
-    }
-
-    public int getPosition() {
-        return position;
-    }
-
-    public void setPosition(int position) {
-        this.position = position;
-    }
-
-    public int getLane() {
-        return lane;
-    }
-
-    public void setLane(int lane) {
-        this.lane = lane;
     }
 }

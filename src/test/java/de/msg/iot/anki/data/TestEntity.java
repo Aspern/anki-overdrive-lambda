@@ -8,19 +8,19 @@ import java.util.Date;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Entity
-public class TestEntity {
+public class TestEntity implements Data {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private String id;
     private Date timestamp;
     private String value;
 
-    public long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(String id) {
         this.id = id;
     }
 

@@ -5,6 +5,8 @@ import de.msg.iot.anki.batchlayer.masterdata.MasterDataSet;
 import de.msg.iot.anki.batchlayer.masterdata.mysql.MysqlMasterDataSet;
 import de.msg.iot.anki.connector.Receiver;
 import de.msg.iot.anki.connector.kafka.KafkaReceiver;
+import de.msg.iot.anki.controller.VehicleController;
+import de.msg.iot.anki.controller.kafka.KafkaVehicleController;
 import de.msg.iot.anki.settings.Settings;
 import de.msg.iot.anki.settings.properties.PropertiesSettings;
 
@@ -28,5 +30,6 @@ public class MysqlLambdaArchitecture extends AbstractModule {
         bind(EntityManagerFactory.class).toInstance(factory);
         bind(Receiver.class).to(KafkaReceiver.class);
         bind(MasterDataSet.class).to(MysqlMasterDataSet.class).asEagerSingleton();
+        bind(VehicleController.class).to(KafkaVehicleController.class);
     }
 }

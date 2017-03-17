@@ -2,6 +2,7 @@ package de.msg.iot.anki.connector;
 
 import com.google.inject.Inject;
 import de.msg.iot.anki.batchlayer.masterdata.MasterDataSet;
+import de.msg.iot.anki.data.PositionUpdateMessage;
 import org.apache.log4j.Logger;
 
 
@@ -26,7 +27,7 @@ public class ConnectorServer {
         if (!running) {
             logger.info("Staring ConnectorServer...");
             receiver.onReceive((message) -> {
-                masterDataSet.store(message);
+                masterDataSet.store((PositionUpdateMessage)message);
             });
 
             pool.submit(receiver);

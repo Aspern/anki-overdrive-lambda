@@ -5,6 +5,7 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import de.msg.iot.anki.batchlayer.ml.MachineLearningServer;
 import de.msg.iot.anki.connector.ConnectorServer;
+import de.msg.iot.anki.controller.SetupListener;
 import org.apache.log4j.Logger;
 
 import java.util.Arrays;
@@ -17,11 +18,12 @@ public class Bootstrap {
     private static ConnectorServer connectorServer;
     private static MachineLearningServer machineLearningServer;
     private static Injector injector;
+    private static SetupListener setupListener;
 
     private static final int[] pieces = {
             33,
             18,
-            20,
+            23,
             39,
             17,
             20,
@@ -31,7 +33,7 @@ public class Bootstrap {
     public static void main(String[] args) {
         final Scanner in = new Scanner(System.in);
         injector = Guice.createInjector(Arrays.asList(
-                new MysqlLambdaArchitecture()
+                new ElasticLambdaArchitecture()
         ));
 
         startUp();
@@ -74,19 +76,31 @@ public class Bootstrap {
 
     private static void startUp() {
         logger.info("Starting lambda architecture using [" + MysqlLambdaArchitecture.class.getName() + "].");
-        startConnectorServer();
-        startMachineLearningServer();
+        //startConnectorServer();
+        startSetupListener();
+        // startMachineLearningServer();
     }
 
     private static void shutdown() {
         logger.info("Shutting down lambda architecture.");
-        connectorServer.stop();
-        machineLearningServer.stop();
+        //connectorServer.stop();
+        setupListener.stop();
+        //   machineLearningServer.stop();
     }
 
     private static void startConnectorServer() {
         connectorServer = injector.getInstance(ConnectorServer.class);
         connectorServer.start();
+    }
+
+    private static void startSetupListener() {
+        setupListener = injector.getInstance(SetupListener.class);
+        setupListener.start();
+    }
+
+    public void stopSetupListener() {
+        if (setupListener != null)
+            setupListener.stop();
     }
 
     private static void startMachineLearningServer() {

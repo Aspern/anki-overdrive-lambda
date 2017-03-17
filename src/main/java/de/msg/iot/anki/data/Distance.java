@@ -4,35 +4,53 @@ package de.msg.iot.anki.data;
 import javax.persistence.*;
 
 @Entity
-public class Distance {
+public class Distance implements Data {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
-    private String vehicleId;
-    private float distance;
+    private String id;
+    private String vehicle;
+    private float horizontal;
+    private float vertical;
+    private float delta;
 
-    public long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
-    public String getVehicleId() {
-        return vehicleId;
+    public String getVehicle() {
+        return vehicle;
     }
 
-    public void setVehicleId(String vehicleId) {
-        this.vehicleId = vehicleId;
+    public void setVehicle(String vehicle) {
+        this.vehicle = vehicle;
     }
 
-    public float getDistance() {
-        return distance;
+    public float getHorizontal() {
+        return horizontal;
     }
 
-    public void setDistance(float distance) {
-        this.distance = distance;
+    public void setHorizontal(float horizontal) {
+        this.horizontal = horizontal;
+    }
+
+    public float getVertical() {
+        return vertical;
+    }
+
+    public void setVertical(float vertical) {
+        this.vertical = vertical;
+    }
+
+    public float getDelta() {
+        return delta;
+    }
+
+    public void setDelta(float delta) {
+        this.delta = delta;
     }
 }

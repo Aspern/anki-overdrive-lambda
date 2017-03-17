@@ -5,6 +5,13 @@ public interface Settings {
 
     String get(String key);
 
+    default String get(String key, String defaultValue) {
+        String value = get(key);
+        if(value == null)
+            return defaultValue;
+        return value;
+    }
+
     default Integer getAsInt(String key, Integer defaultValue) {
         String value = get(key);
         if (value == null)
