@@ -1,5 +1,6 @@
 package de.msg.iot.anki.rest;
 
+import de.msg.iot.anki.controller.kafka.KafkaScenarioController;
 import de.msg.iot.anki.controller.kafka.KafkaVehicleController;
 import de.msg.iot.anki.entity.Setup;
 import de.msg.iot.anki.entity.Vehicle;
@@ -17,20 +18,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 @Path("/setup")
 public class SetupRestHandler {
 
+    private static KafkaScenarioController scenarioController = new KafkaScenarioController();
     private static Map<String, KafkaVehicleController> controller = new HashMap<>();
-    private static Map<String, Future<Void>> runningScenarios = new HashMap<>();
     private static List<String> scenarios = new ArrayList<String>() {{
         add("collision");
         add("anti-collision");
     }};
-    private static ExecutorService threadpool = Executors.newCachedThreadPool();
+
 
     private final EntityManagerFactory factory = Persistence.createEntityManagerFactory("anki");
     private final EntityManager manager = factory.createEntityManager();
@@ -140,52 +138,22 @@ public class SetupRestHandler {
 
         switch (name) {
             case "collision":
-                startScenario(new Collision(setup));
+                scenarioController.startCollisionScenario();
                 return Response.ok().build();
             case "anti-collision":
-                startScenario(new AntiCollision(setup));
+                scenarioController.startAntiCollisionScenario();
                 return Response.ok().build();
             default:
                 return Response.status(404).build();
         }
     }
 
-    @POST
-    @Path("/{id}/scenario/{name}/stop")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response stopScenario(@PathParam("id") long id, @PathParam("name") String name) {
-        Setup setup = manager.find(Setup.class, id);
-
-        if (setup == null || !scenarios.contains(name))
-            return Response.status(404).build();
-
-        if (stopScenario(name))
-            return Response.ok().build();
-
-        return Response.status(404).build();
-    }
 
     private KafkaVehicleController controller(String uuid) {
         if (!controller.containsKey(uuid))
             controller.put(uuid, new KafkaVehicleController(uuid));
 
         return controller.get(uuid);
-    }
-
-    private boolean startScenario(Scenario scenario) {
-        if (!runningScenarios.containsKey(scenario.getName())) {
-            runningScenarios.put(scenario.getName(), threadpool.submit(scenario));
-            return true;
-        }
-        return false;
-    }
-
-    private boolean stopScenario(String name) {
-        if (runningScenarios.containsKey(name)) {
-            runningScenarios.get(name).cancel(true);
-            return true;
-        }
-        return false;
     }
 
 }
