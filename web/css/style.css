@@ -146,8 +146,8 @@ li::before {
 
 .status1 {
 
-    margin-bottom: 50px !important;
     float: left !important;
+    display: block;
 
 }
 

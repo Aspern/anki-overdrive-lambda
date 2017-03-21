@@ -393,6 +393,7 @@ img.pull-left {
 .bgrid {
   padding: 0 20px;
   margin: 10px 10px 10px 10px;
+  border: red 2px solid;
 }
 @media only screen and (max-width: 1024px) {
   .bgrid {
@@ -1928,6 +1929,7 @@ html[data-useragent*='MSIE 10.0'] .scrolldown,
 #services .services-content {
   text-align: center;
   max-width: 1040px;
+  border: green 2px solid;
 }
 #services .services-list {
   margin-top: 1.2rem;
@@ -1975,6 +1977,7 @@ html[data-useragent*='MSIE 10.0'] .scrolldown,
   }
   #services .services-content {
     max-width: 550px;
+    text-align: center;
   }
   #services .services-list .service-item {
     padding: 0 15px;
@@ -2638,20 +2641,18 @@ html[data-useragent*='MSIE 10.0'] .scrolldown,
   color: #FFFFFF;
 }
 
-#contact button.submitform {
-  font-size: 1.5rem;
-  display: block;
-  letter-spacing: .2rem;
-  height: 4rem;
-  line-height: 6rem;
+button.submitform {
+  font-size: 1.2rem;
+  line-height: 3rem;
   padding: 0 3rem;
-  width: 4rem;
-  background: #f9a828;
+  height: 40px;
+  width: 200px;
+  background: #c73301;
   color: #000000;
   margin-top: .6rem;
 }
-#contact button.submitform:hover, #contact button.submitform:focus {
-  background: #f89e0f;
+button.submitform:hover, button.submitform:focus {
+  background: #f89e0f !important;
 }
 
 #message-warning, #message-success {
@@ -2991,4 +2992,12 @@ footer h4.h05::after {
   .footer-bottom .copyright span::after {
     display: none;
   }
+
+}
+
+.center {
+  text-align: center !important;
+;
+    border: green 2px solid;
+      float:  middle;
 }

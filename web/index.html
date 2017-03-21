@@ -106,74 +106,54 @@
 
    			<div class="about-profile-bg"></div>
    			<p class="lead animate-this"><span>Scenario Handler</p>	
-				</div>   
-
-	      	<div class="bgrid service-item animate-this">	
 
 
-	            <div class="service-content">
+   		</div>
+				   
+   		<div class="align-center" >
+
+
+
+	            <div class="align-center" style="margin-right: 20px; margin-left: 20px">
 	            
 	            	<h3 class="h05">Anit Collision</h3>
 	            	 	
-	            	 	<button class="submitform" ng-click="sendReq('anti-collision/start','AC-S')">Start</button>
+	            	 	<button class="submitform" style="background-color: #10851d;" ng-click="sendReq('anti-collision/start','AC-S')">Start</button>
 	            	 
 	            	 	<br>
 	            	 
 
-	            		<button class="submitform" ng-click="sendReq('anti-collision/interrupt','AC-I')">Stop</button>
+	            		<button class="submitform"  ng-click="sendReq('anti-collision/interrupt','AC-I')">Stop</button>
 
 		            <p>
 	         		</p>	         		
 	         	</div> 	         	 
 
-			</div> <!-- end bgrid -->
-
-			<div class="bgrid service-item animate-this">	
 
 
-	            <div class="service-content">	
+
+	            <div class="align-center" style="margin-right: 20px; margin-left: 20px">	
 	            	
 	            	<h3 class="h05">Collision</h3>  
-	            	<button class="submitform">Submit</button>
+	            		
+	            		<button class="submitform" style="background-color: #10851d;" ng-click="sendReq('collision/start','C-S')">Start</button>
+	            	 
+	            	 	<br>
+	            	 
+
+	            		<button class="submitform"  ng-click="sendReq('collision/interrupt','C-I')">Stop</button>
 
 		            <p>
 	         		</p>	         		
-	            </div>	                          
 
-			</div> <!-- end bgrid -->
+		</div> <!-- end bgrid -->
 
-			<div class="bgrid service-item animate-this">
-
-
-	            <div class="service-content">
-	            	
-	            	<h3 class="h05">Scenario C</h3>
-	            	<button class="submitform">Submit</button>
-
-		            <p>
-	        			</p>
-	            </div> 	            	               
-
-			</div> <!-- end bgrid -->
-
-			<div class="bgrid service-item animate-this">
-
-
-	            <div class="service-content">
-	            	
-	            	<h3 class="h05">Scenario D</h3>
-	            	<button class="submitform">Submit</button>
-
-
-		            <p>
-	         		</p>	         		
-	            </div>        
-			
-			</div> <!-- end services-content -->   	
+	</div>
 
    		
       <hr> 
-        <div  class="status1" id="status"> Status:<br></div>
+      	<div style="float: left !important;"><b>Status:</b></div><br>
+        <div  class="status1" id="status" style="text-align: left !important;"></div>
 
    		</div> <!-- end col-full  -->
    	</div> <!-- end about-wrap  -->

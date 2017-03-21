@@ -360,7 +360,7 @@ textarea {
 }
 
 [class*="col-"], .bgrid {
-  float: left;
+  float: left !important;
 }
 
 [class*="col-"] + [class*="col-"].end {
@@ -772,4 +772,5 @@ textarea {
   margin-left: auto;
   margin-right: auto;
   text-align: center;
-}
+  display: inline-block;
+ }
