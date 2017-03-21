@@ -1,5 +1,6 @@
 package de.msg.iot.anki.connector.kafka;
 
+import de.msg.iot.anki.settings.Settings;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -15,24 +16,27 @@ public class KafkaProducer {
     private Producer producer;
     private Properties props;
 
-    public KafkaProducer(String topic){
-        this.topic = topic;
+    public KafkaProducer(Settings settings){
+        this.topic = settings.get("kafka.topic");
 
         props = new Properties();
-        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
-        props.put(ProducerConfig.ACKS_CONFIG, "all");
-        props.put(ProducerConfig.CLIENT_ID_CONFIG, "WebLogProducer");  // For figuring out exception
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, settings.get("kafka.server"));
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, settings.get("kafka.key.serializer"));
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, settings.get("kafka.value.serializer"));
+        props.put(ProducerConfig.ACKS_CONFIG, settings.get("kafka.ack_config"));
+        props.put(ProducerConfig.CLIENT_ID_CONFIG, settings.get("kafka.client_id_config"));  // For figuring out exception
 
         producer = new org.apache.kafka.clients.producer.KafkaProducer<String, String>(props);
     }
 
     public void sendMessage(String message){
-        ProducerRecord<String, String> rec = new ProducerRecord<>(topic, message);
+        ProducerRecord<String, String> rec = new ProducerRecord<>(topic, "key", message);
         producer.send(rec);
     }
 
+    /*
+    * Don't forget to close this!
+    * */
     public void close(){
         producer.close();
     }
