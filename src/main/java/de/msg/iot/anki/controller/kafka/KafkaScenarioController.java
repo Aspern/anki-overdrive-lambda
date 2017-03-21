@@ -21,9 +21,11 @@ public class KafkaScenarioController {
 
     private static class Info {
         private final String name;
+        private final boolean interrupt;
 
-        public Info(String name) {
+        public Info(String name, boolean interrupt) {
             this.name = name;
+            this.interrupt = interrupt;
         }
     }
 
@@ -40,19 +42,23 @@ public class KafkaScenarioController {
         this.producer = new KafkaProducer<>(properties);
     }
 
-    public void startCollisionScenario() {
-        sendMessage("collision");
+    public void collisionScenario(boolean interrupt) {
+        sendMessage("collision", interrupt);
     }
 
-    public void startAntiCollisionScenario() {
-        sendMessage("anti-collision");
+    public void antiCollisionScenario(boolean interrupt) {
+        sendMessage("anti-collision", interrupt);
     }
 
-    private void sendMessage(final String name) {
+    public void maxSpeedScenario(boolean interrupt) {
+        sendMessage("max-speed", interrupt);
+    }
+
+    private void sendMessage(final String name, final boolean interrupt) {
         this.producer.send(new ProducerRecord<>(
                 "scenario",
                 "Message-" + counter.getAndIncrement(),
-                serializer.toJson(new Info(name))
+                serializer.toJson(new Info(name, interrupt))
         ));
     }
 

@@ -4,9 +4,6 @@ import de.msg.iot.anki.controller.kafka.KafkaScenarioController;
 import de.msg.iot.anki.controller.kafka.KafkaVehicleController;
 import de.msg.iot.anki.entity.Setup;
 import de.msg.iot.anki.entity.Vehicle;
-import de.msg.iot.anki.scenario.AntiCollision;
-import de.msg.iot.anki.scenario.Collision;
-import de.msg.iot.anki.scenario.Scenario;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -27,6 +24,7 @@ public class SetupRestHandler {
     private static List<String> scenarios = new ArrayList<String>() {{
         add("collision");
         add("anti-collision");
+        add("max-speed");
     }};
 
 
@@ -138,10 +136,37 @@ public class SetupRestHandler {
 
         switch (name) {
             case "collision":
-                scenarioController.startCollisionScenario();
+                scenarioController.collisionScenario(false);
                 return Response.ok().build();
             case "anti-collision":
-                scenarioController.startAntiCollisionScenario();
+                scenarioController.antiCollisionScenario(false);
+                return Response.ok().build();
+            case "max-speed":
+                scenarioController.maxSpeedScenario(false);
+                return Response.ok().build();
+            default:
+                return Response.status(404).build();
+        }
+    }
+
+    @POST
+    @Path("/{id}/scenario/{name}/interrupt")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response interruptScenario(@PathParam("id") long id, @PathParam("name") String name) {
+        Setup setup = manager.find(Setup.class, id);
+
+        if (setup == null || !scenarios.contains(name))
+            return Response.status(404).build();
+
+        switch (name) {
+            case "collision":
+                scenarioController.collisionScenario(true);
+                return Response.ok().build();
+            case "anti-collision":
+                scenarioController.antiCollisionScenario(true);
+                return Response.ok().build();
+            case "max-speed":
+                scenarioController.maxSpeedScenario(true);
                 return Response.ok().build();
             default:
                 return Response.status(404).build();
