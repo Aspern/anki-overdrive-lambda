@@ -42,10 +42,10 @@ public class SetupRestHandler {
     }
 
     @GET
-    @Path("/{id}")
+    @Path("/{setupId}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response get(@PathParam("id") long id) {
-        Setup setup = manager.find(Setup.class, id);
+    public Response get(@PathParam("setupId") String setupId) {
+        Setup setup = manager.find(Setup.class, setupId);
 
         if (setup == null)
             return Response.status(404).build();
@@ -54,10 +54,10 @@ public class SetupRestHandler {
     }
 
     @GET
-    @Path("/{id}/vehicle")
+    @Path("/{setupId}/vehicle")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response vehicle(@PathParam("id") long id) {
-        Setup setup = manager.find(Setup.class, id);
+    public Response vehicle(@PathParam("setupId") String setupId) {
+        Setup setup = manager.find(Setup.class, setupId);
 
         if (setup == null)
             return Response.status(404).build();
@@ -66,16 +66,16 @@ public class SetupRestHandler {
     }
 
     @GET
-    @Path("/{id}/vehicle/{uuid}")
+    @Path("/{setupId}/vehicle/{vehicleId}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response vehicle(@PathParam("id") long id, @PathParam("uuid") String uuid) {
-        Setup setup = manager.find(Setup.class, id);
+    public Response vehicle(@PathParam("setupId") String setupId, @PathParam("vehicleId") String vehicleId) {
+        Setup setup = manager.find(Setup.class, setupId);
 
         if (setup == null)
             return Response.status(404).build();
 
         for (Vehicle vehicle : setup.getVehicles()) {
-            if (uuid.equals(vehicle.getUuid()))
+            if (vehicleId.equals(vehicle.getUuid()))
                 return Response.ok(vehicle).build();
         }
 
@@ -83,10 +83,10 @@ public class SetupRestHandler {
     }
 
     @POST
-    @Path("/{id}/vehicle/{uuid}/set-speed")
+    @Path("/{setupId}/vehicle/{vehicleId}/set-speed")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response setSpeed(@PathParam("id") long id, @PathParam("uuid") String uuid, @QueryParam("speed") int speed, @QueryParam("acceleration") int acceleration) {
-        Response response = vehicle(id, uuid);
+    public Response setSpeed(@PathParam("setupId") String setupId, @PathParam("vehicleId") String vehicleId, @QueryParam("speed") int speed, @QueryParam("acceleration") int acceleration) {
+        Response response = vehicle(setupId, vehicleId);
 
         if (response.getStatus() != 200)
             return Response.status(response.getStatus()).build();
@@ -101,10 +101,10 @@ public class SetupRestHandler {
     }
 
     @GET
-    @Path("/{id}/track")
+    @Path("/{setupId}/track")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response track(@PathParam("id") long id) {
-        Setup setup = manager.find(Setup.class, id);
+    public Response track(@PathParam("setupId") String setupId) {
+        Setup setup = manager.find(Setup.class, setupId);
 
         if (setup == null || setup.getTrack() == null)
             return Response.status(404).build();
@@ -114,10 +114,10 @@ public class SetupRestHandler {
 
 
     @GET
-    @Path("/{id}/scenario")
+    @Path("/{setupId}/scenario")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response scenario(@PathParam("id") long id) {
-        Setup setup = manager.find(Setup.class, id);
+    public Response scenario(@PathParam("setupId") String setupId) {
+        Setup setup = manager.find(Setup.class, setupId);
 
         if (setup == null)
             return Response.status(404).build();
@@ -126,10 +126,10 @@ public class SetupRestHandler {
     }
 
     @POST
-    @Path("/{id}/scenario/{name}/start")
+    @Path("/{setupId}/scenario/{name}/start")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response startScenario(@PathParam("id") long id, @PathParam("name") String name) {
-        Setup setup = manager.find(Setup.class, id);
+    public Response startScenario(@PathParam("setupId") String setupId, @PathParam("name") String name) {
+        Setup setup = manager.find(Setup.class, setupId);
 
         if (setup == null || !scenarios.contains(name))
             return Response.status(404).build();
@@ -150,10 +150,10 @@ public class SetupRestHandler {
     }
 
     @POST
-    @Path("/{id}/scenario/{name}/interrupt")
+    @Path("/{setupId}/scenario/{name}/interrupt")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response interruptScenario(@PathParam("id") long id, @PathParam("name") String name) {
-        Setup setup = manager.find(Setup.class, id);
+    public Response interruptScenario(@PathParam("setupId") String setupId, @PathParam("name") String name) {
+        Setup setup = manager.find(Setup.class, setupId);
 
         if (setup == null || !scenarios.contains(name))
             return Response.status(404).build();
