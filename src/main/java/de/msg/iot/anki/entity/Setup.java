@@ -9,22 +9,12 @@ import java.util.List;
 public class Setup {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.TABLE)
-    private long id;
     private String uuid;
     @OneToMany(cascade = CascadeType.PERSIST, orphanRemoval = true)
     private List<Vehicle> vehicles;
     @OneToOne(cascade = CascadeType.PERSIST, orphanRemoval = true)
     private Track track;
     private boolean online;
-
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
 
     public List<Vehicle> getVehicles() {
         return vehicles;
