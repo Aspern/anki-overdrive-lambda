@@ -16,6 +16,7 @@ public abstract class AbstractKafkaConsumer<T> implements Runnable {
     private final KafkaConsumer<String, String> consumer;
     private final String[] topics;
     private final Gson serializer = new Gson();
+    private volatile boolean running = true;
 
     public AbstractKafkaConsumer(String... topics) {
         final Settings settings = new PropertiesSettings("settings.properties");
@@ -37,16 +38,24 @@ public abstract class AbstractKafkaConsumer<T> implements Runnable {
 
     @Override
     public void run() {
-        while (!Thread.currentThread().isInterrupted()) {
-            ConsumerRecords<String, String> records = consumer.poll(100);
-            for (ConsumerRecord<String, String> record : records) {
-                T value = serializer.fromJson(record.value(), getType());
-                handle(value);
+        try {
+            while (running) {
+                ConsumerRecords<String, String> records = consumer.poll(100);
+                for (ConsumerRecord<String, String> record : records) {
+                    T value = serializer.fromJson(record.value(), getType());
+                    handle(value);
+                }
             }
+        } finally {
+            consumer.close();
         }
     }
 
     public abstract Class<T> getType();
 
     public abstract void handle(T record);
+
+    public void stop() {
+        this.running = false;
+    }
 }

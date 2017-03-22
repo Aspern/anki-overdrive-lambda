@@ -6,6 +6,7 @@ import de.msg.iot.anki.settings.Settings;
 import de.msg.iot.anki.settings.properties.PropertiesSettings;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.log4j.Logger;
 
 import java.util.Properties;
 import java.util.UUID;
@@ -16,8 +17,7 @@ public class KafkaScenarioController {
     private final Gson serializer = new Gson();
     private final KafkaProducer<String, String> producer;
     private final AtomicInteger counter = new AtomicInteger();
-
-    private String uuid;
+    private final Logger logger = Logger.getLogger(KafkaScenarioController.class);
 
     private static class Info {
         private final String name;
@@ -31,7 +31,6 @@ public class KafkaScenarioController {
 
     public KafkaScenarioController() {
         final Settings settings = new PropertiesSettings("settings.properties");
-        this.uuid = uuid;
 
         Properties properties = new Properties();
         properties.put("bootstrap.servers", settings.get("kafka.server"));
@@ -55,11 +54,17 @@ public class KafkaScenarioController {
     }
 
     private void sendMessage(final String name, final boolean interrupt) {
-        this.producer.send(new ProducerRecord<>(
-                "scenario",
-                "Message-" + counter.getAndIncrement(),
-                serializer.toJson(new Info(name, interrupt))
-        ));
+        try {
+            this.producer.send(new ProducerRecord<>(
+                    "scenario",
+                    0,
+                    "Message-" + counter.getAndIncrement(),
+                    serializer.toJson(new Info(name, interrupt))
+            ));
+            logger.info("Sent Message: {\"name\":\"" + name + "\",\"interrupt\":" + interrupt + "}");
+        } catch (Exception e) {
+            logger.error(e);
+        }
     }
 
 }

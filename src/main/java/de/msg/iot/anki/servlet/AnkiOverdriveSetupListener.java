@@ -12,6 +12,7 @@ import javax.servlet.ServletContextListener;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by aweber on 15.03.17.
@@ -22,11 +23,12 @@ public class AnkiOverdriveSetupListener implements ServletContextListener {
     private final Logger logger = Logger.getLogger(AnkiOverdriveSetupListener.class);
     private final EntityManagerFactory factory = Persistence.createEntityManagerFactory("anki");
     private final EntityManager manager = factory.createEntityManager();
+    private AbstractKafkaConsumer<Setup> listener;
 
     @Override
     public void contextInitialized(ServletContextEvent servletContextEvent) {
         logger.info("Starting consumer for AnkiOverdriveSetupListener...");
-        threadpool.submit(new AbstractKafkaConsumer<Setup>("setup") {
+        this.listener = new AbstractKafkaConsumer<Setup>("setup") {
 
             @Override
             public Class<Setup> getType() {
@@ -43,7 +45,6 @@ public class AnkiOverdriveSetupListener implements ServletContextListener {
                             manager.getTransaction().begin();
                             manager.persist(setup);
                             manager.getTransaction().commit();
-                            manager.flush();
                             logger.info("Stored setup with uuid [" + setup.getUuid() + "].");
                         } else {
                             logger.warn("Setup with uuid [" + setup.getUuid() + "] already exists!");
@@ -57,20 +58,27 @@ public class AnkiOverdriveSetupListener implements ServletContextListener {
                             manager.getTransaction().commit();
                             logger.info("Deleted setup with uuid [" + record.getUuid() + "].");
                         });
-                        manager.flush();
                     }
 
                 } catch (Exception e) {
                     logger.error(e);
                 }
             }
-        });
+        };
+
+        threadpool.submit(listener);
 
     }
 
     @Override
     public void contextDestroyed(ServletContextEvent servletContextEvent) {
         logger.info("Shutting down consumer for AnkiOverdriveSetupListener...");
-        threadpool.shutdownNow();
+        try {
+            listener.stop();
+            threadpool.shutdown();
+            threadpool.awaitTermination(30, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            logger.error(e);
+        }
     }
 }
