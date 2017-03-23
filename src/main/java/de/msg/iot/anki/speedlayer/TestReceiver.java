@@ -5,7 +5,6 @@ import de.msg.iot.anki.settings.properties.PropertiesSettings;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -16,7 +15,6 @@ import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaPairReceiverInputDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.kafka.KafkaUtils;
-import scala.Tuple2;
 
 import java.util.*;
 
@@ -25,47 +23,47 @@ import java.util.*;
  */
 public class TestReceiver {
 
+    /*
+    * Spark Context variable
+    * */
     static SparkConf sparkConf;
     static JavaSparkContext sc;
     static JavaStreamingContext jssc;
     static SQLContext sqlContext;
-
-    String jdbcUsername = "root";
-    String jdbcPassword = "";
-    static String jdbcHostname = "localhost";
-    static int jdbcPort = 3306;
-    static String jdbcDatabase ="anki";
-    //String jdbcUrl = s"jdbc:mysql://${jdbcHostname}:${jdbcPort}/${jdbcDatabase}?user=${jdbcUsername}&password=${jdbcPassword}"
-    static String url="jdbc:mysql://" + jdbcHostname + ":" + jdbcPort + "/" + jdbcDatabase;
-
-
-    static Function<Tuple2<String, String>, String> mapFunc=new Function<Tuple2<String, String>, String>() {
-        @Override
-        public String call(Tuple2<String, String> tuple2) {
-            return tuple2._2();
-        }
-    };
 
     public static void main(String[] args){
 
         Settings settings = new PropertiesSettings("settings.properties");
 
         String topic = settings.get("kafka.topic");
+
+        // Batch duration for the streaming window
         int batchDuration = 4;
 
-        // Create context with a 2 seconds batch interval
+        // Url to save data to mysql db
+        String url="jdbc:mysql://" + settings.get("mysql.url") + ":" + settings.get("mysql.port") + "/" + settings.get("mysql.database");
+
+        // Define the configuration for spark context
         sparkConf = new SparkConf().setAppName("AnkiLambda").setMaster("local[*]");
+
+        // Initialize the spark context
         sc = new JavaSparkContext(sparkConf);
-        JavaStreamingContext jssc = new JavaStreamingContext(sc, Durations.seconds(batchDuration));
+
+        // This context is for receiving real-time stream
+        jssc = new JavaStreamingContext(sc, Durations.seconds(batchDuration));
+
+        // This context is used tto save messages to mysql db
         sqlContext = new SQLContext(sc);
 
+        // Define the properties for mysql db
         Properties connectionProperties = new java.util.Properties();
+        connectionProperties.setProperty("user", settings.get("mysql.user"));
+        connectionProperties.setProperty("password", settings.get("mysql.password"));
 
-        connectionProperties.setProperty("user","root");
-        connectionProperties.setProperty("password","");
-
+        // Initialize the checkpoint for spark
         jssc.checkpoint(settings.get("kafka.checkpoint"));
 
+        // Kafka receiver properties
         Map<String, String> kafkaParams = new HashMap<>();
         kafkaParams.put("zookeeper.connect", settings.get("zookeeper.url"));
         kafkaParams.put("group.id", settings.get("kafka.group.id"));
@@ -73,6 +71,7 @@ public class TestReceiver {
 
         //Set<String> topicsSet = new HashSet<>(Arrays.asList(topics.split(",")));
 
+        // Add topic to the Hashmap. We can add multiple topics here
         Map<String,Integer> topicMap=new HashMap<>();
         topicMap.put(topic,1);
 
@@ -101,7 +100,6 @@ public class TestReceiver {
         * Get only the value from stream and meanwhile save message in the mysql aswell
         * */
         JavaDStream<String> str = kafkaStream.map(a -> {
-            //System.out.println("received: " + a._2());
             List<Row> list = new ArrayList<>();
             list.add(RowFactory.create(a._2()));
             JavaRDD<Row> rdd = sc.parallelize(list);
@@ -109,11 +107,14 @@ public class TestReceiver {
             df.write().mode(SaveMode.Append).jdbc(url, "kafkamsg", connectionProperties);
             return a._2();
         });
+
+        // Print the received and transformed stream
         str.print();
 
         // Start the computation
         jssc.start();
 
+        // Don't stop the execution until user explicitly stops or we can pass the duration for the execution
         try {
             jssc.awaitTermination();
         } catch (InterruptedException e) {
