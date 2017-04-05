@@ -13,6 +13,11 @@ public class SparkController {
         int i = 0;
         while(i < 10){
             producer.sendMessage("Hello");
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             i++;
         }
         producer.close();

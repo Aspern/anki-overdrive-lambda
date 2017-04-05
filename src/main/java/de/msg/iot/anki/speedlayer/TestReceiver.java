@@ -5,7 +5,10 @@ import de.msg.iot.anki.settings.properties.PropertiesSettings;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.*;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
@@ -30,10 +33,65 @@ public class TestReceiver {
     static JavaSparkContext sc;
     static JavaStreamingContext jssc;
     static SQLContext sqlContext;
+    static Map<String, Integer> store;
+
+
+    public static void handleAntiCollision(String message){
+        float distance = Float.parseFloat(message.split(",")[14]);  //get Horizontal distance
+        if (distance <= 500)
+            brake(message);
+        else if (distance > 700)
+            driveNormal(message);
+        else
+            holdSpeed(message);
+    }
+
+    /*
+    * Retrieve car speed via id from the hashmap
+    * */
+    private static int getCarSpeed(String carId){
+        return store.get(carId);
+    }
+
+    private static void holdSpeed(String message) {
+        System.out.println("Holding Speed : " + message.split(",")[3]);
+
+        int speed = getCarSpeed(message.split(",")[1]);
+        int messageSpeed = Integer.parseInt(message.split(",")[3]);
+        if (speed < messageSpeed - 30)
+            speedUp(message);
+        else
+            holdSpeed(message);
+    }
+
+    private static void speedUp(String message) {
+        System.out.println("Speed up : " + message.split(",")[3]);
+
+        int speed = getCarSpeed(message.split(",")[1]);
+
+        //Speed up car, send message via kafka
+        //record.vehicle.setSpeed(speed, 50);
+    }
+
+    private static void driveNormal(String message) {
+        System.out.println("Driving Normal : " + message.split(",")[3]);
+    }
+
+    private static void brake(String message) {
+        System.out.println("Applying Brake : " + message.split(",")[3]);
+
+        int speed = getCarSpeed(message.split(",")[1]);
+
+        //send speed message via kafka
+        //record.vehicle.setSpeed(message.speed - 50, 200);
+    }
+
 
     public static void main(String[] args){
 
         Settings settings = new PropertiesSettings("settings.properties");
+
+        store = new HashMap<>();
 
         String topic = settings.get("kafka.topic");
 
@@ -100,16 +158,60 @@ public class TestReceiver {
         * Get only the value from stream and meanwhile save message in the mysql aswell
         * */
         JavaDStream<String> str = kafkaStream.map(a -> {
+            String carId = a.toString().split(",")[1];
+            if(!store.containsKey(carId)){
+                store.put(carId, 0);
+            }
+
+            //Prepare data to store in database
             List<Row> list = new ArrayList<>();
             list.add(RowFactory.create(a._2()));
             JavaRDD<Row> rdd = sc.parallelize(list);
             Dataset df = sqlContext.createDataFrame(rdd, schema);
-            df.write().mode(SaveMode.Append).jdbc(url, "kafkamsg", connectionProperties);
+            //df.write().mode(SaveMode.Append).jdbc(url, "kafkamsg", connectionProperties);
             return a._2();
         });
 
-        // Print the received and transformed stream
-        str.print();
+        // Print the received and transformed stream : key and value
+        //kafkaStream.print();
+
+        //print the value from stream
+        //str.print();
+
+        JavaDStream<String> car1 = str.filter(x -> {
+            String id = x.split(",")[1];
+            if(id.equals("eb401ef0f82b")){
+                return Boolean.TRUE;
+            }
+            else {
+                return Boolean.FALSE;
+            }
+        });
+
+        //car1.print();
+
+        JavaDStream<String> car2 = str.filter(x -> {
+            String id = x.split(",")[1];
+            if(id.equals("ed0c94216553")){
+                return Boolean.TRUE;
+            }
+            else {
+                return Boolean.FALSE;
+            }
+        });
+
+        //car2.print();
+
+        JavaDStream<String> antiCollisionCar1 = car1.map(x -> {
+            float delta = Float.parseFloat(x.split(",")[16]);
+            float verticalDistance = Float.parseFloat(x.split(",")[15]);
+            if(delta < 0 && verticalDistance <= 34){
+                handleAntiCollision(x);
+            }
+            return x;
+        });
+
+        antiCollisionCar1.print();
 
         // Start the computation
         jssc.start();
