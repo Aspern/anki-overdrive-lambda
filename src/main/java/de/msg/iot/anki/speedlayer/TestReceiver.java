@@ -33,6 +33,9 @@ import java.util.*;
  */
 public class TestReceiver {
 
+    public static String BLUE_VEHICLE_ID = "eb401ef0f82b";
+    public static String RED_VEHICLE_ID = "ed0c94216553";
+
     /*
     * Spark Context variable
     * */
@@ -149,8 +152,8 @@ public class TestReceiver {
         producer = new KafkaProducer(settings, "test");
 
         store = new HashMap<String, Integer>() {{
-            put("eb401ef0f82b", 400); //blue car inner lane @beginning
-            put("ed0c94216553", 600); //red car outer lane @beginning
+            put(BLUE_VEHICLE_ID, 400); //blue car inner lane @beginning
+            put(RED_VEHICLE_ID, 600); //red car outer lane @beginning
         }};
 
         String topic = settings.get("kafka.topic");
@@ -250,7 +253,7 @@ public class TestReceiver {
 
         JavaDStream<String> car1 = str.filter(x -> {
             String carId = getCarIdFromJson(x.toString());
-            if(carId != null && carId.equals("eb401ef0f82b")){
+            if(carId != null && carId.equals(BLUE_VEHICLE_ID)){
                 return Boolean.TRUE;
             }
             else {
@@ -262,7 +265,7 @@ public class TestReceiver {
 
         JavaDStream<String> car2 = str.filter(x -> {
             String carId = getCarIdFromJson(x.toString());
-            if(carId != null && carId.equals("ed0c94216553")){
+            if(carId != null && carId.equals(RED_VEHICLE_ID)){
                 return Boolean.TRUE;
             }
             else {
