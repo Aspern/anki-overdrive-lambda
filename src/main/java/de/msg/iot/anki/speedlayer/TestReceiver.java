@@ -1,5 +1,10 @@
 package de.msg.iot.anki.speedlayer;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import de.msg.iot.anki.connector.kafka.KafkaProducer;
 import de.msg.iot.anki.settings.Settings;
 import de.msg.iot.anki.settings.properties.PropertiesSettings;
 import org.apache.spark.SparkConf;
@@ -34,10 +39,13 @@ public class TestReceiver {
     static JavaStreamingContext jssc;
     static SQLContext sqlContext;
     static Map<String, Integer> store;
+    static KafkaProducer producer;
 
 
     public static void handleAntiCollision(String message){
-        float distance = Float.parseFloat(message.split(",")[14]);  //get Horizontal distance
+
+        Float distance = getDistanceFromJson(message, "horizontal");  //get Horizontal distance
+        System.out.println("handling anti collision : " + distance);
         if (distance <= 500)
             brake(message);
         else if (distance > 700)
@@ -55,9 +63,9 @@ public class TestReceiver {
 
     private static void holdSpeed(String message) {
         System.out.println("Holding Speed : " + message.split(",")[3]);
-
-        int speed = getCarSpeed(message.split(",")[1]);
-        int messageSpeed = Integer.parseInt(message.split(",")[3]);
+        producer.sendMessage("hold speed");
+        int speed = getCarSpeed(getCarIdFromJson(message));
+        float messageSpeed = getSpeedFromJson(message);
         if (speed < messageSpeed - 30)
             speedUp(message);
         else
@@ -65,31 +73,95 @@ public class TestReceiver {
     }
 
     private static void speedUp(String message) {
-        System.out.println("Speed up : " + message.split(",")[3]);
+        System.out.println("Speed up : ");
 
-        int speed = getCarSpeed(message.split(",")[1]);
+        //int speed = getCarSpeed(message.split(",")[1]);
+
+        String response = "{" +
+                            "\"name\" : \"set-speed\", " +
+                            "\"params\" : [" +
+                            "500, " +   //speed
+                            "250" +     //acceleration
+                            "]" +
+                          "}";
+        producer.sendMessage(response);
+        producer.sendMessage(response, getCarIdFromJson(message));
 
         //Speed up car, send message via kafka
         //record.vehicle.setSpeed(speed, 50);
     }
 
     private static void driveNormal(String message) {
-        System.out.println("Driving Normal : " + message.split(",")[3]);
+        System.out.println("Driving Normal : ");
+
+        String response = "{" +
+                "\"name\" : \"set-speed\", " +
+                "\"params\" : [" +
+                getSpeedFromJson(message) +   //speed
+                "," +
+                "250" +     //acceleration
+                "]" +
+                "}";
+        producer.sendMessage(response);
+        producer.sendMessage(response, getCarIdFromJson(message));
     }
 
     private static void brake(String message) {
-        System.out.println("Applying Brake : " + message.split(",")[3]);
+        System.out.println("Applying Brake : ");
 
-        int speed = getCarSpeed(message.split(",")[1]);
+        //int speed = getCarSpeed(message.split(",")[1]);
+
+        String response = "{" +
+                            "\"name\" : \"brake\", " +
+                            "\"params\" : [" +
+                            "0.09" +
+                            "]" +
+                          "}";
+        producer.sendMessage(response);
+        producer.sendMessage(response, getCarIdFromJson(message));
 
         //send speed message via kafka
         //record.vehicle.setSpeed(message.speed - 50, 200);
     }
 
+    private static String getCarIdFromJson(String json){
+
+        System.out.println(json);
+        JsonElement jelement = new JsonParser().parse(json);
+        JsonObject jobject = jelement.getAsJsonObject();
+        if(!jobject.has("vehicleId")) return null;
+        String carId = jobject.get("vehicleId").toString().replaceAll("^\"|\"$", "");
+        return carId;
+    }
+
+    private static float getSpeedFromJson(String json){
+
+        JsonElement jelement = new JsonParser().parse(json);
+        JsonObject jobject = jelement.getAsJsonObject();
+        String speed = jobject.get("speed").toString();
+        return Float.parseFloat(speed);
+    }
+
+    private static Float getDistanceFromJson(String json, String type){
+        JsonElement jelement = new JsonParser().parse(json);
+        JsonObject jobject = jelement.getAsJsonObject();
+
+        if(!(Integer.parseInt(jobject.get("messageId").toString()) == 39)) return null;
+
+        JsonArray jarray = jobject.getAsJsonArray("distances");
+        if(jarray.size() == 0) return null;
+        System.out.println("JARRAY is  : " + jarray);
+        System.out.println("JSON is : " + json);
+        jobject = jarray.get(0).getAsJsonObject();
+        String result = jobject.get(type).toString();
+        return result.equals("null") ? null : Float.parseFloat(result);
+    }
 
     public static void main(String[] args){
 
         Settings settings = new PropertiesSettings("settings.properties");
+
+        producer = new KafkaProducer(settings, "test");
 
         store = new HashMap<>();
 
@@ -154,13 +226,17 @@ public class TestReceiver {
                         StorageLevel.MEMORY_AND_DISK()
         );
 
+
         /*
         * Get only the value from stream and meanwhile save message in the mysql aswell
         * */
         JavaDStream<String> str = kafkaStream.map(a -> {
-            String carId = a.toString().split(",")[1];
-            if(!store.containsKey(carId)){
-                store.put(carId, 0);
+
+            String carId = getCarIdFromJson(a._2().toString());
+
+            //String carId = a.toString().split(",")[1];
+            if(!store.containsKey(carId) && carId != null){
+                store.put(carId, 200);
             }
 
             //Prepare data to store in database
@@ -169,7 +245,7 @@ public class TestReceiver {
             JavaRDD<Row> rdd = sc.parallelize(list);
             Dataset df = sqlContext.createDataFrame(rdd, schema);
             //df.write().mode(SaveMode.Append).jdbc(url, "kafkamsg", connectionProperties);
-            return a._2();
+            return a._2().toString();
         });
 
         // Print the received and transformed stream : key and value
@@ -179,8 +255,8 @@ public class TestReceiver {
         //str.print();
 
         JavaDStream<String> car1 = str.filter(x -> {
-            String id = x.split(",")[1];
-            if(id.equals("eb401ef0f82b")){
+            String carId = getCarIdFromJson(x.toString());
+            if(carId != null && carId.equals("d5255cd93a2b")){
                 return Boolean.TRUE;
             }
             else {
@@ -191,8 +267,8 @@ public class TestReceiver {
         //car1.print();
 
         JavaDStream<String> car2 = str.filter(x -> {
-            String id = x.split(",")[1];
-            if(id.equals("ed0c94216553")){
+            String carId = getCarIdFromJson(x.toString());
+            if(carId != null && carId.equals("ef4ace474907")){
                 return Boolean.TRUE;
             }
             else {
@@ -203,8 +279,27 @@ public class TestReceiver {
         //car2.print();
 
         JavaDStream<String> antiCollisionCar1 = car1.map(x -> {
-            float delta = Float.parseFloat(x.split(",")[16]);
-            float verticalDistance = Float.parseFloat(x.split(",")[15]);
+            Float delta = getDistanceFromJson(x.toString(), "delta");
+            Float verticalDistance = getDistanceFromJson(x.toString(), "vertical");
+
+            System.out.println(delta + " -- " + verticalDistance);
+
+            if(delta == null || verticalDistance == null) return x;
+
+            if(delta < 0 && verticalDistance <= 34){
+                handleAntiCollision(x);
+            }
+            return x;
+        });
+
+        JavaDStream<String> antiCollisionCar2 = car2.map(x -> {
+            Float delta = getDistanceFromJson(x.toString(), "delta");
+            Float verticalDistance = getDistanceFromJson(x.toString(), "vertical");
+
+            System.out.println(delta + " -- " + verticalDistance);
+
+            if(delta == null || verticalDistance == null) return x;
+
             if(delta < 0 && verticalDistance <= 34){
                 handleAntiCollision(x);
             }
@@ -212,6 +307,7 @@ public class TestReceiver {
         });
 
         antiCollisionCar1.print();
+        antiCollisionCar2.print();
 
         // Start the computation
         jssc.start();
@@ -219,6 +315,7 @@ public class TestReceiver {
         // Don't stop the execution until user explicitly stops or we can pass the duration for the execution
         try {
             jssc.awaitTermination();
+            producer.close();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
