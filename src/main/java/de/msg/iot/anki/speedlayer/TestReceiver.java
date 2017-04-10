@@ -185,7 +185,7 @@ public class TestReceiver {
         connectionProperties.setProperty("password", settings.get("mysql.password"));
 
         // Initialize the checkpoint for spark
-        jssc.checkpoint("/home/aweber/testfolder");
+        jssc.checkpoint(settings.get("kafka.checkpoint"));
 
         // Kafka receiver properties
         Map<String, String> kafkaParams = new HashMap<>();
