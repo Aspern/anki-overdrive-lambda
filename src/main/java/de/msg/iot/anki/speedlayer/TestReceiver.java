@@ -53,7 +53,7 @@ public class TestReceiver {
         if (distance <= 500)
             brake(message);
         else if (distance > 700)
-            driveNormal(message);
+            speedUp(message);
         //TODO: removed hold speed case because it was only to set light.
     }
 
@@ -105,7 +105,7 @@ public class TestReceiver {
         String response = "{" +
                             "\"name\" : \"brake\", " +
                             "\"params\" : [" +
-                            "0.09" +
+                            "0.15" +
                             "]" +
                           "}";
         producer.sendMessage(response);
@@ -159,7 +159,7 @@ public class TestReceiver {
         String topic = settings.get("kafka.topic");
 
         // Batch duration for the streaming window
-        int batchDuration = 4000; //TODO: Changed batch window
+        int batchDuration = 500; //TODO: Changed batch window
 
         // Url to save data to mysql db
         String url="jdbc:mysql://" + settings.get("mysql.url") + ":" + settings.get("mysql.port") + "/" + settings.get("mysql.database");
@@ -285,7 +285,8 @@ public class TestReceiver {
 
             if(delta < 0 && verticalDistance <= 34){
                 handleAntiCollision(x);
-            }
+            } else if(getSpeedFromJson(x.toString()) < store.get(getCarIdFromJson(x.toString())) - 30) //TODO: speed up again on other lane
+                speedUp(x.toString());
             return x;
         });
 
