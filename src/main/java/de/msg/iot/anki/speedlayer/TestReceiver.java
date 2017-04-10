@@ -45,7 +45,6 @@ public class TestReceiver {
     public static void handleAntiCollision(String message){
 
         Float distance = getDistanceFromJson(message, "horizontal");  //get Horizontal distance
-        System.out.println("handling anti collision : " + distance);
         if (distance <= 500)
             brake(message);
         else if (distance > 700)
@@ -62,7 +61,6 @@ public class TestReceiver {
     }
 
     private static void holdSpeed(String message) {
-        System.out.println("Holding Speed : " + message.split(",")[3]);
         producer.sendMessage("hold speed");
         int speed = getCarSpeed(getCarIdFromJson(message));
         float messageSpeed = getSpeedFromJson(message);
@@ -73,10 +71,6 @@ public class TestReceiver {
     }
 
     private static void speedUp(String message) {
-        System.out.println("Speed up : ");
-
-        //int speed = getCarSpeed(message.split(",")[1]);
-
         String response = "{" +
                             "\"name\" : \"set-speed\", " +
                             "\"params\" : [" +
@@ -87,12 +81,9 @@ public class TestReceiver {
         producer.sendMessage(response);
         producer.sendMessage(response, getCarIdFromJson(message));
 
-        //Speed up car, send message via kafka
-        //record.vehicle.setSpeed(speed, 50);
     }
 
     private static void driveNormal(String message) {
-        System.out.println("Driving Normal : ");
 
         String response = "{" +
                 "\"name\" : \"set-speed\", " +
@@ -107,10 +98,6 @@ public class TestReceiver {
     }
 
     private static void brake(String message) {
-        System.out.println("Applying Brake : ");
-
-        //int speed = getCarSpeed(message.split(",")[1]);
-
         String response = "{" +
                             "\"name\" : \"brake\", " +
                             "\"params\" : [" +
@@ -126,7 +113,6 @@ public class TestReceiver {
 
     private static String getCarIdFromJson(String json){
 
-        System.out.println(json);
         JsonElement jelement = new JsonParser().parse(json);
         JsonObject jobject = jelement.getAsJsonObject();
         if(!jobject.has("vehicleId")) return null;
@@ -150,8 +136,6 @@ public class TestReceiver {
 
         JsonArray jarray = jobject.getAsJsonArray("distances");
         if(jarray.size() == 0) return null;
-        System.out.println("JARRAY is  : " + jarray);
-        System.out.println("JSON is : " + json);
         jobject = jarray.get(0).getAsJsonObject();
         String result = jobject.get(type).toString();
         return result.equals("null") ? null : Float.parseFloat(result);
@@ -278,11 +262,9 @@ public class TestReceiver {
 
         //car2.print();
 
-        JavaDStream<String> antiCollisionCar1 = car1.map(x -> {
+        JavaDStream<String> antiCollisionCar1 = str.map(x -> {
             Float delta = getDistanceFromJson(x.toString(), "delta");
             Float verticalDistance = getDistanceFromJson(x.toString(), "vertical");
-
-            System.out.println(delta + " -- " + verticalDistance);
 
             if(delta == null || verticalDistance == null) return x;
 
@@ -292,22 +274,8 @@ public class TestReceiver {
             return x;
         });
 
-        JavaDStream<String> antiCollisionCar2 = car2.map(x -> {
-            Float delta = getDistanceFromJson(x.toString(), "delta");
-            Float verticalDistance = getDistanceFromJson(x.toString(), "vertical");
-
-            System.out.println(delta + " -- " + verticalDistance);
-
-            if(delta == null || verticalDistance == null) return x;
-
-            if(delta < 0 && verticalDistance <= 34){
-                handleAntiCollision(x);
-            }
-            return x;
-        });
 
         antiCollisionCar1.print();
-        antiCollisionCar2.print();
 
         // Start the computation
         jssc.start();
