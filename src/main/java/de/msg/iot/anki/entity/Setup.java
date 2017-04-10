@@ -9,7 +9,8 @@ import java.util.List;
 public class Setup {
 
     @Id
-    private String uuid;
+    private String ean;
+    private String name;
     @OneToMany(cascade = CascadeType.PERSIST, orphanRemoval = true)
     private List<Vehicle> vehicles;
     @OneToOne(cascade = CascadeType.PERSIST, orphanRemoval = true)
@@ -40,11 +41,19 @@ public class Setup {
         this.online = online;
     }
 
-    public String getUuid() {
-        return uuid;
+    public String getEan() {
+        return ean;
     }
 
-    public void setUuid(String uuid) {
-        this.uuid = uuid;
+    public void setEan(String ean) {
+        this.ean = ean;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }

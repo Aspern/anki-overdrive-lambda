@@ -39,24 +39,24 @@ public class AnkiOverdriveSetupListener implements ServletContextListener {
             public void handle(Setup setup) {
                 try {
                     if (setup.isOnline()) {
-                        if (manager.createQuery("select d from Setup d where d.uuid = '" + setup.getUuid() + "'")
+                        if (manager.createQuery("select d from Setup d where d.ean = '" + setup.getEan() + "'")
                                 .getResultList()
                                 .isEmpty()) {
                             manager.getTransaction().begin();
                             manager.persist(setup);
                             manager.getTransaction().commit();
-                            logger.info("Stored setup with uuid [" + setup.getUuid() + "].");
+                            logger.info("Stored setup with uuid [" + setup.getEan() + "].");
                         } else {
-                            logger.warn("Setup with uuid [" + setup.getUuid() + "] already exists!");
+                            logger.warn("Setup with uuid [" + setup.getEan() + "] already exists!");
                         }
                     } else {
 
-                        ((List<Setup>) manager.createQuery("select d from Setup d where d.uuid = '" + setup.getUuid() + "'")
+                        ((List<Setup>) manager.createQuery("select d from Setup d where d.ean = '" + setup.getEan() + "'")
                                 .getResultList()).forEach(record -> {
                             manager.getTransaction().begin();
                             manager.remove(record);
                             manager.getTransaction().commit();
-                            logger.info("Deleted setup with uuid [" + record.getUuid() + "].");
+                            logger.info("Deleted setup with uuid [" + record.getEan() + "].");
                         });
                     }
 
