@@ -7,6 +7,8 @@ import com.google.gson.JsonParser;
 import de.msg.iot.anki.connector.kafka.KafkaProducer;
 import de.msg.iot.anki.settings.Settings;
 import de.msg.iot.anki.settings.properties.PropertiesSettings;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -168,6 +170,8 @@ public class TestReceiver {
 
         // This context is used tto save messages to mysql db
         sqlContext = new SQLContext(sc);
+
+        Logger.getLogger("all").setLevel(Level.OFF);
 
         // Define the properties for mysql db
         Properties connectionProperties = new java.util.Properties();
