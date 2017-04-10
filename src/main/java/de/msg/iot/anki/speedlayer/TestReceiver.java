@@ -7,6 +7,8 @@ import com.google.gson.JsonParser;
 import de.msg.iot.anki.connector.kafka.KafkaProducer;
 import de.msg.iot.anki.settings.Settings;
 import de.msg.iot.anki.settings.properties.PropertiesSettings;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -49,8 +51,7 @@ public class TestReceiver {
             brake(message);
         else if (distance > 700)
             driveNormal(message);
-        else
-            holdSpeed(message);
+        //TODO: removed hold speed case because it was only to set light.
     }
 
     /*
@@ -71,16 +72,16 @@ public class TestReceiver {
     }
 
     private static void speedUp(String message) {
+        final String carId = getCarIdFromJson(message);
         String response = "{" +
-                            "\"name\" : \"set-speed\", " +
+                            "\"name\" : \"accelerate\", " +
                             "\"params\" : [" +
-                            "500, " +   //speed
-                            "250" +     //acceleration
+                            store.get(carId)+ ", " +   //speed //TODO: using static speed for accel.
+                            "0.08" +     //acceleration
                             "]" +
                           "}";
         producer.sendMessage(response);
         producer.sendMessage(response, getCarIdFromJson(message));
-
     }
 
     private static void driveNormal(String message) {
@@ -147,12 +148,15 @@ public class TestReceiver {
 
         producer = new KafkaProducer(settings, "test");
 
-        store = new HashMap<>();
+        store = new HashMap<String, Integer>() {{
+            put("eb401ef0f82b", 400); //blue car inner lane @beginning
+            put("ed0c94216553", 600); //red car outer lane @beginning
+        }};
 
         String topic = settings.get("kafka.topic");
 
         // Batch duration for the streaming window
-        int batchDuration = 4;
+        int batchDuration = 4000; //TODO: Changed batch window
 
         // Url to save data to mysql db
         String url="jdbc:mysql://" + settings.get("mysql.url") + ":" + settings.get("mysql.port") + "/" + settings.get("mysql.database");
@@ -162,9 +166,10 @@ public class TestReceiver {
 
         // Initialize the spark context
         sc = new JavaSparkContext(sparkConf);
+        sc.setLogLevel("ERROR");
 
         // This context is for receiving real-time stream
-        jssc = new JavaStreamingContext(sc, Durations.seconds(batchDuration));
+        jssc = new JavaStreamingContext(sc, Durations.milliseconds(batchDuration)); //TODO: changed unit.
 
         // This context is used tto save messages to mysql db
         sqlContext = new SQLContext(sc);
@@ -175,7 +180,7 @@ public class TestReceiver {
         connectionProperties.setProperty("password", settings.get("mysql.password"));
 
         // Initialize the checkpoint for spark
-        jssc.checkpoint(settings.get("kafka.checkpoint"));
+        jssc.checkpoint("/home/aweber/testfolder");
 
         // Kafka receiver properties
         Map<String, String> kafkaParams = new HashMap<>();
@@ -195,6 +200,10 @@ public class TestReceiver {
         StructType schema = DataTypes
                 .createStructType(new StructField[] {
                         DataTypes.createStructField("message", DataTypes.StringType, false)});
+
+
+        Logger.getLogger("org").setLevel(Level.OFF);
+        Logger.getLogger("akka").setLevel(Level.OFF);
 
         /*
         * Create kafka stream to receive messages
@@ -219,9 +228,10 @@ public class TestReceiver {
             String carId = getCarIdFromJson(a._2().toString());
 
             //String carId = a.toString().split(",")[1];
-            if(!store.containsKey(carId) && carId != null){
-                store.put(carId, 200);
-            }
+            //TODO: using static speeds.
+//            if(!store.containsKey(carId) && carId != null){
+//                store.put(carId, 200);
+//            }
 
             //Prepare data to store in database
             List<Row> list = new ArrayList<>();
@@ -240,7 +250,7 @@ public class TestReceiver {
 
         JavaDStream<String> car1 = str.filter(x -> {
             String carId = getCarIdFromJson(x.toString());
-            if(carId != null && carId.equals("d5255cd93a2b")){
+            if(carId != null && carId.equals("eb401ef0f82b")){
                 return Boolean.TRUE;
             }
             else {
@@ -252,7 +262,7 @@ public class TestReceiver {
 
         JavaDStream<String> car2 = str.filter(x -> {
             String carId = getCarIdFromJson(x.toString());
-            if(carId != null && carId.equals("ef4ace474907")){
+            if(carId != null && carId.equals("ed0c94216553")){
                 return Boolean.TRUE;
             }
             else {
