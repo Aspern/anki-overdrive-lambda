@@ -10,15 +10,8 @@ import de.msg.iot.anki.settings.properties.PropertiesSettings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.SQLContext;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
 import org.apache.spark.streaming.Durations;
 import org.apache.spark.streaming.api.java.JavaDStream;
@@ -26,15 +19,16 @@ import org.apache.spark.streaming.api.java.JavaPairReceiverInputDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.kafka.KafkaUtils;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by msg on 17.03.17.
  */
 public class TestReceiver {
 
-    public static String BLUE_VEHICLE_ID = "eb401ef0f82b";
-    public static String RED_VEHICLE_ID = "ed0c94216553";
+    public static String BLUE_VEHICLE_ID = "d5255cd93a2b";
+    public static String RED_VEHICLE_ID = "ef4ace474907";
 
     /*
     * Spark Context variable
@@ -88,7 +82,6 @@ public class TestReceiver {
     }
 
     private static void driveNormal(String message) {
-
         String response = "{" +
                 "\"name\" : \"set-speed\", " +
                 "\"params\" : [" +
@@ -110,9 +103,6 @@ public class TestReceiver {
                           "}";
         producer.sendMessage(response);
         producer.sendMessage(response, getCarIdFromJson(message));
-
-        //send speed message via kafka
-        //record.vehicle.setSpeed(message.speed - 50, 200);
     }
 
     private static String getCarIdFromJson(String json){
@@ -122,6 +112,15 @@ public class TestReceiver {
         if(!jobject.has("vehicleId")) return null;
         String carId = jobject.get("vehicleId").toString().replaceAll("^\"|\"$", "");
         return carId;
+    }
+
+    private static Integer getMessageIdFromJson(String json){
+
+        JsonElement jelement = new JsonParser().parse(json);
+        JsonObject jobject = jelement.getAsJsonObject();
+        if(!jobject.has("messageId")) return null;
+        int messageId = Integer.parseInt(jobject.get("messageId").toString());
+        return messageId;
     }
 
     private static float getSpeedFromJson(String json){
@@ -161,8 +160,6 @@ public class TestReceiver {
         // Batch duration for the streaming window
         int batchDuration = 500; //TODO: Changed batch window
 
-        // Url to save data to mysql db
-        String url="jdbc:mysql://" + settings.get("mysql.url") + ":" + settings.get("mysql.port") + "/" + settings.get("mysql.database");
 
         // Define the configuration for spark context
         sparkConf = new SparkConf().setAppName("AnkiLambda").setMaster("local[*]");
@@ -179,11 +176,6 @@ public class TestReceiver {
 
         Logger.getLogger("all").setLevel(Level.OFF);
 
-        // Define the properties for mysql db
-        Properties connectionProperties = new java.util.Properties();
-        connectionProperties.setProperty("user", settings.get("mysql.user"));
-        connectionProperties.setProperty("password", settings.get("mysql.password"));
-
         // Initialize the checkpoint for spark
         jssc.checkpoint(settings.get("kafka.checkpoint"));
 
@@ -198,17 +190,6 @@ public class TestReceiver {
         // Add topic to the Hashmap. We can add multiple topics here
         Map<String,Integer> topicMap=new HashMap<>();
         topicMap.put(topic,1);
-
-        /*
-        * Schema for saving messages into mysql database
-        * */
-        StructType schema = DataTypes
-                .createStructType(new StructField[] {
-                        DataTypes.createStructField("message", DataTypes.StringType, false)});
-
-
-        Logger.getLogger("org").setLevel(Level.OFF);
-        Logger.getLogger("akka").setLevel(Level.OFF);
 
         /*
         * Create kafka stream to receive messages
@@ -229,33 +210,15 @@ public class TestReceiver {
         * Get only the value from stream and meanwhile save message in the mysql aswell
         * */
         JavaDStream<String> str = kafkaStream.map(a -> {
-
-            String carId = getCarIdFromJson(a._2().toString());
-
-            //String carId = a.toString().split(",")[1];
-            //TODO: using static speeds.
-//            if(!store.containsKey(carId) && carId != null){
-//                store.put(carId, 200);
-//            }
-
-            //Prepare data to store in database
-            List<Row> list = new ArrayList<>();
-            list.add(RowFactory.create(a._2()));
-            JavaRDD<Row> rdd = sc.parallelize(list);
-            Dataset df = sqlContext.createDataFrame(rdd, schema);
-            //df.write().mode(SaveMode.Append).jdbc(url, "kafkamsg", connectionProperties);
             return a._2().toString();
         });
 
-        // Print the received and transformed stream : key and value
-        //kafkaStream.print();
-
-        //print the value from stream
-        //str.print();
-
-        JavaDStream<String> car1 = str.filter(x -> {
-            String carId = getCarIdFromJson(x.toString());
-            if(carId != null && carId.equals(BLUE_VEHICLE_ID)){
+        /*
+        * Filter out the messages which contains the distances
+         */
+        JavaDStream<String> speedMessagesStream = str.filter(a -> {
+            Integer messageId = getMessageIdFromJson(a);
+            if(messageId != null && messageId == 39){
                 return Boolean.TRUE;
             }
             else {
@@ -263,21 +226,10 @@ public class TestReceiver {
             }
         });
 
-        //car1.print();
-
-        JavaDStream<String> car2 = str.filter(x -> {
-            String carId = getCarIdFromJson(x.toString());
-            if(carId != null && carId.equals(RED_VEHICLE_ID)){
-                return Boolean.TRUE;
-            }
-            else {
-                return Boolean.FALSE;
-            }
-        });
-
-        //car2.print();
-
-        JavaDStream<String> antiCollisionCar1 = str.map(x -> {
+        /*
+        * check for the distance and invoke anti-collision
+        * */
+        JavaDStream<String> antiCollision = speedMessagesStream.map(x -> {
             Float delta = getDistanceFromJson(x.toString(), "delta");
             Float verticalDistance = getDistanceFromJson(x.toString(), "vertical");
 
@@ -290,8 +242,7 @@ public class TestReceiver {
             return x;
         });
 
-
-        antiCollisionCar1.print();
+        antiCollision.print();
 
         // Start the computation
         jssc.start();
