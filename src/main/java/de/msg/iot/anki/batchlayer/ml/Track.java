@@ -1,6 +1,8 @@
 package de.msg.iot.anki.batchlayer.ml;
 
 
+import java.util.function.BiConsumer;
+
 public class Track {
 
     private final Start start;
@@ -20,6 +22,18 @@ public class Track {
 
     public Finish getFinish() {
         return finish;
+    }
+
+    public void eachPieceWithLocations(int lane, BiConsumer<Integer, Integer> consumer) {
+        Piece current = this.getStart();
+
+        do {
+            final int piece = current.getId();
+            current.eachLocation(lane, location -> {
+                consumer.accept(piece, location);
+            });
+            current = current.getNext();
+        } while (current != this.getStart());
     }
 
     public static Builder builder() {

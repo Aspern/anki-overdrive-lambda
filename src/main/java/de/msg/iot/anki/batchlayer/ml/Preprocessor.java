@@ -6,6 +6,7 @@ import com.mongodb.client.MongoDatabase;
 import de.msg.iot.anki.settings.Settings;
 import de.msg.iot.anki.settings.properties.PropertiesSettings;
 import org.apache.log4j.Logger;
+import org.bson.Document;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -32,7 +33,7 @@ public class Preprocessor implements Runnable {
     public Preprocessor() {
         try {
             this.settings = new PropertiesSettings("settings.properties");
-            this.computation = new QualityBatchComputation1();
+            this.computation = new QualityBatchComputation2();
 
             this.mongo = new MongoClient(
                     settings.get("mongo.host", "localhost"),
@@ -59,11 +60,13 @@ public class Preprocessor implements Runnable {
         try {
 
             MongoDatabase db = mongo.getDatabase("anki");
-            MongoCollection table = db.getCollection("quality");
+            MongoCollection table = db.getCollection("quality2");
             table.drop();
             computation.onComputationFinished(basicDBObjects -> {
-                if (!basicDBObjects.isEmpty())
+                if (!basicDBObjects.isEmpty()) {
                     table.insertMany(basicDBObjects);
+                }
+
             });
 
             while (this.running) {
@@ -94,7 +97,8 @@ public class Preprocessor implements Runnable {
 
                 } while (scroll.getHits().getHits().length != 0);
 
-                Thread.sleep(5000L);
+                logger.info("Finished Batch-iteration.");
+                Thread.sleep(20000L);
             }
         } catch (Exception e) {
             logger.error("Unexpected Error while processing", e);
