@@ -6,7 +6,6 @@ import com.mongodb.client.MongoDatabase;
 import de.msg.iot.anki.settings.Settings;
 import de.msg.iot.anki.settings.properties.PropertiesSettings;
 import org.apache.log4j.Logger;
-import org.bson.Document;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -19,21 +18,23 @@ import org.elasticsearch.transport.client.PreBuiltTransportClient;
 
 import java.net.InetAddress;
 
-public class Preprocessor implements Runnable {
+public class AntiCollisionPreprocessor implements Runnable {
 
     private volatile boolean running = false;
-    private final Logger logger = Logger.getLogger(Preprocessor.class);
+    private final Logger logger = Logger.getLogger(AntiCollisionPreprocessor.class);
 
 
     private Client elastic;
     private MongoClient mongo;
     private Settings settings;
-    private BatchComputation computation;
+    private BatchComputation v1;
+    private BatchComputation v2;
 
-    public Preprocessor() {
+    public AntiCollisionPreprocessor() {
         try {
             this.settings = new PropertiesSettings("settings.properties");
-            this.computation = new QualityBatchComputation2();
+            this.v1 = new PositionUpdateComputation();
+            this.v2 = new PositionUpdateComputation();
 
             this.mongo = new MongoClient(
                     settings.get("mongo.host", "localhost"),
@@ -54,19 +55,24 @@ public class Preprocessor implements Runnable {
 
     @Override
     public void run() {
-        logger.info("Running " + Preprocessor.class.getSimpleName() + ".");
+        logger.info("Running " + AntiCollisionPreprocessor.class.getSimpleName() + ".");
         this.running = true;
 
         try {
 
             MongoDatabase db = mongo.getDatabase("anki");
-            MongoCollection table = db.getCollection("quality2");
+            MongoCollection table = db.getCollection(AntiCollisionPreprocessor.class.getSimpleName());
             table.drop();
-            computation.onComputationFinished(basicDBObjects -> {
+            v1.onComputationFinished(basicDBObjects -> {
                 if (!basicDBObjects.isEmpty()) {
                     table.insertMany(basicDBObjects);
                 }
 
+            });
+            v2.onComputationFinished(basicDBObjects -> {
+                if (!basicDBObjects.isEmpty()) {
+                    table.insertMany(basicDBObjects);
+                }
             });
 
             while (this.running) {
@@ -87,8 +93,12 @@ public class Preprocessor implements Runnable {
                         .get();
 
                 do {
-                    for (SearchHit hit : scroll.getHits().getHits())
-                        computation.compute(hit);
+                    for (SearchHit hit : scroll.getHits().getHits()) {
+                        if (hit.getSource().get("vehicleId").equals(settings.get("vehicle.groundshock.uuid")))
+                            v1.compute(hit);
+                        else
+                            v2.compute(hit);
+                    }
 
                     scroll = elastic.prepareSearchScroll(scroll.getScrollId())
                             .setScroll(new TimeValue(60000))
@@ -98,7 +108,7 @@ public class Preprocessor implements Runnable {
                 } while (scroll.getHits().getHits().length != 0);
 
                 logger.info("Finished Batch-iteration.");
-                Thread.sleep(20000L);
+                Thread.sleep(5000L);
             }
         } catch (Exception e) {
             logger.error("Unexpected Error while processing", e);
@@ -109,7 +119,7 @@ public class Preprocessor implements Runnable {
 
 
     public void stop() {
-        logger.info("Stopped " + Preprocessor.class.getSimpleName() + ".");
+        logger.info("Stopped " + AntiCollisionPreprocessor.class.getSimpleName() + ".");
         this.running = false;
     }
 }

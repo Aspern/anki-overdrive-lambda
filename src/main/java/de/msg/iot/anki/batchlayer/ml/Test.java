@@ -9,12 +9,18 @@ import java.util.concurrent.TimeUnit;
  */
 public class Test {
 
-    private final static ExecutorService pool = Executors.newSingleThreadExecutor();
+    private final static ExecutorService pool = Executors.newFixedThreadPool(2);
+    private static final MessageQualityPreprocessor p1 = new MessageQualityPreprocessor();
+    private static final AntiCollisionPreprocessor p2 = new AntiCollisionPreprocessor();
 
     public static void main(String[] args) throws InterruptedException {
 
-        pool.submit(new Preprocessor());
+        pool.submit(p1);
+        //pool.submit(p2);
         pool.shutdown();
+        Thread.sleep(5000L);
+        p1.stop();
+        //p2.stop();
         pool.awaitTermination(10L, TimeUnit.MINUTES);
 
     }
