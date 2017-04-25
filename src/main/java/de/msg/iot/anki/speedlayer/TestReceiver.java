@@ -19,6 +19,9 @@ import org.apache.spark.streaming.api.java.JavaPairReceiverInputDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.kafka.KafkaUtils;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,8 +30,8 @@ import java.util.Map;
  */
 public class TestReceiver {
 
-    public static String BLUE_VEHICLE_ID = "d5255cd93a2b";
-    public static String RED_VEHICLE_ID = "ef4ace474907";
+    public static String RED_VEHICLE_ID = "d5255cd93a2b";
+    public static String BLUE_VEHICLE_ID = "ef4ace474907";
 
     /*
     * Spark Context variable
@@ -39,7 +42,10 @@ public class TestReceiver {
     static SQLContext sqlContext;
     static Map<String, Integer> store;
     static KafkaProducer producer;
-
+    static int roundNumber = 0;
+    static int batteryLevel = 0;
+    static  Boolean is34 = false;
+    static PrintWriter pw;
 
     public static void handleAntiCollision(String message){
 
@@ -131,6 +137,22 @@ public class TestReceiver {
         return Float.parseFloat(speed);
     }
 
+    private static int getBatteryLevelFromJson(String json){
+
+        JsonElement jelement = new JsonParser().parse(json);
+        JsonObject jobject = jelement.getAsJsonObject();
+        String level = jobject.get("batteryLevel").toString();
+        return Integer.parseInt(level);
+    }
+
+    private static int getPieceFromJson(String json){
+
+        JsonElement jelement = new JsonParser().parse(json);
+        JsonObject jobject = jelement.getAsJsonObject();
+        String piece = jobject.get("piece").toString();
+        return Integer.parseInt(piece);
+    }
+
     private static Float getDistanceFromJson(String json, String type){
         JsonElement jelement = new JsonParser().parse(json);
         JsonObject jobject = jelement.getAsJsonObject();
@@ -158,7 +180,7 @@ public class TestReceiver {
         String topic = settings.get("kafka.topic");
 
         // Batch duration for the streaming window
-        int batchDuration = 500; //TODO: Changed batch window
+        int batchDuration = 800; //TODO: Changed batch window
 
 
         // Define the configuration for spark context
@@ -177,7 +199,8 @@ public class TestReceiver {
         Logger.getLogger("all").setLevel(Level.OFF);
 
         // Initialize the checkpoint for spark
-        jssc.checkpoint(settings.get("kafka.checkpoint"));
+        //jssc.checkpoint(settings.get("kafka.checkpoint"));
+        jssc.checkpoint("/home/msg/Documents/tmp");
 
         // Kafka receiver properties
         Map<String, String> kafkaParams = new HashMap<>();
@@ -209,9 +232,30 @@ public class TestReceiver {
         /*
         * Get only the value from stream and meanwhile save message in the mysql aswell
         * */
-        JavaDStream<String> str = kafkaStream.map(a -> {
-            return a._2().toString();
+        JavaDStream<String> str = kafkaStream.map(a -> a._2().toString());
+
+        /*
+        * Filter out the messages which contains the distances
+         */
+        JavaDStream<String> batteryMessagesStream = str.filter(a -> {
+            Integer messageId = getMessageIdFromJson(a);
+            if(messageId != null && messageId == 27){
+                return Boolean.TRUE;
+            }
+            else {
+                return Boolean.FALSE;
+            }
         });
+
+        JavaDStream<String> bstr = batteryMessagesStream.map(a -> {
+            batteryLevel = getBatteryLevelFromJson(a);
+            System.out.println("Battery is : " + batteryLevel);
+            return a;
+        });
+
+        bstr.print();
+
+
 
         /*
         * Filter out the messages which contains the distances
@@ -219,12 +263,46 @@ public class TestReceiver {
         JavaDStream<String> speedMessagesStream = str.filter(a -> {
             Integer messageId = getMessageIdFromJson(a);
             if(messageId != null && messageId == 39){
-                return Boolean.TRUE;
+                if(getPieceFromJson(a) == 34) {
+                    is34 = !is34;
+                    if(is34){
+                        roundNumber++;
+                        return Boolean.TRUE;
+                    }
+                    return Boolean.FALSE;
+                }
+                return Boolean.FALSE;
             }
             else {
                 return Boolean.FALSE;
             }
         });
+
+        pw = null;
+        try {
+            pw = new PrintWriter(new File("/home/msg/Documents/BatteryLevel.csv"));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        StringBuilder sb = new StringBuilder();
+
+        JavaDStream<String> str1 = speedMessagesStream.map(a -> {
+
+            sb.append(BLUE_VEHICLE_ID);
+            sb.append(',');
+            sb.append(roundNumber);
+            sb.append(',');
+            sb.append(batteryLevel);
+            sb.append(',');
+            sb.append(getSpeedFromJson(a));
+            sb.append('\n');
+
+            pw.write(sb.toString());
+
+            return "Round: " + roundNumber + ", Battery: " + batteryLevel ;
+        });
+
+        str1.print();
 
         /*
         * check for the distance and invoke anti-collision
@@ -233,7 +311,11 @@ public class TestReceiver {
             Float delta = getDistanceFromJson(x.toString(), "delta");
             Float verticalDistance = getDistanceFromJson(x.toString(), "vertical");
 
-            if(delta == null || verticalDistance == null) return x;
+            if(delta == null || verticalDistance == null) {
+                System.out.println("Delta or vertical distance is null -- ");
+                System.out.println(x.toString());
+                return x;
+            }
 
             if(delta < 0 && verticalDistance <= 34){
                 handleAntiCollision(x);
@@ -242,7 +324,7 @@ public class TestReceiver {
             return x;
         });
 
-        antiCollision.print();
+        //antiCollision.print();
 
         // Start the computation
         jssc.start();
@@ -251,6 +333,7 @@ public class TestReceiver {
         try {
             jssc.awaitTermination();
             producer.close();
+            pw.close();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
