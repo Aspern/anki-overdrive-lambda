@@ -44,7 +44,7 @@ public class AggregateQualityForLocations {
         Piece piece = track.getStart();
         int i = 0;
 
-        for (int j = 0, speed = 700; speed <= 1000; speed += 100, j++) {
+        for (int j = 0, speed = 700; speed <= 1000; speed += 50, j++) {
 
 
 
