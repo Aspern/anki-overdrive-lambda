@@ -31,72 +31,7 @@ var scenarioURL = portAddress+ '/setup'
 /* Scenario Starts here*/
 
 $scope.scenarioArray = [ "anti-collision", "collision","Scenario A" ];
-$scope.api_getSetup = [
-  {
-    "id": 4711,
-    "uuid": "ao-adrian",
-    "websocket": "ws://localhost:8081",
-    "online": true,
-    "vehicles": [
-      {
-        "id": 19,
-        "uuid": "eb401ef0f82b",
-        "address": "eb:40:1e:f0:f8:2b",
-        "name": "Ground Shock",
-        "connected": true
-      },
-      {
-        "id": 20,
-        "uuid": "eb401ef0f82x",
-        "address": "eb:40:1e:f0:f8:2b",
-        "name": "Skull",
-        "connected": true
-      }
-    ],
-    "track": {
-      "id": 12,
-      "pieces": [
-        {
-          "id": 17,
-          "pieceId": 39,
-          "type": "straight"
-        }
-      ]
-    }
-  },
-  {
-    "id": 4711,
-    "uuid": "ao-salman",
-    "websocket": "ws://localhost:8082",
-    "online": true,
-    "vehicles": [
-      {
-        "id": 21,
-        "uuid": "eb401ef0f82a",
-        "address": "eb:40:1e:f0:f8:2b",
-        "name": "Ground Shock",
-        "connected": true
-      },
-      {
-        "id": 22,
-        "uuid": "eb401ef0f82d",
-        "address": "eb:40:1e:f0:f8:2b",
-        "name": "Skull",
-        "connected": true
-      }
-    ],
-    "track": {
-      "id": 12,
-      "pieces": [
-        {
-          "id": 17,
-          "pieceId": 39,
-          "type": "straight"
-        }
-      ]
-    }
-  }
-];
+
 
 
 
@@ -178,7 +113,6 @@ $scope.refreshSetupAPI = function()
                 $scope.api_getSetup = angular.fromJson(x);
                 $scope.createSpeedoMeter(); // creating speedometer again
 
-
  
             });
 
@@ -210,6 +144,9 @@ $scope.refreshSetupAPI = function()
             });
 
 };
+
+$scope.refreshSetupAPI(); //initially fetching the data from the rest API
+
 
 
 /* REST SERVICE FUNCTIONS ends here*/
@@ -331,9 +268,6 @@ $scope.createSpeedoMeter(); // creating speedometer on runtime
 $scope.webSocketConnection(); // establishing websocket connections
 
 
-
-
-
 $scope.sendWebSocketMessage = function (setupID,vehicleID,messageType,value)
 {
 
@@ -396,10 +330,10 @@ $scope.sendWebSocketMessage = function (setupID,vehicleID,messageType,value)
 
     else if(messageType == 'applyBrake')
     {
-        var websocket_setupid = $scope.getSetupID(vehicleID);
+        var websocket_setupid = $scope.getSetupID(vehicleID.substring(1));
         var new_json = {
                             "command" : 'brake',
-                            "vehicleId" : vehicleID,
+                            "vehicleId" : vehicleID.substring(1),
                             "payload" : {}
 
                         };
@@ -413,11 +347,8 @@ $scope.sendWebSocketMessage = function (setupID,vehicleID,messageType,value)
 
 $scope.getSetupID = function(vehicleid)
 {
-
-    //console.log(vehiclesInSetup);
     
     return vehiclesInSetup[vehicleid];
-
 
 }
 
