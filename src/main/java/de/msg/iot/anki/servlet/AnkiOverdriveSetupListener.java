@@ -14,9 +14,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Created by aweber on 15.03.17.
- */
 public class AnkiOverdriveSetupListener implements ServletContextListener {
 
     private final ExecutorService threadpool = Executors.newSingleThreadExecutor();

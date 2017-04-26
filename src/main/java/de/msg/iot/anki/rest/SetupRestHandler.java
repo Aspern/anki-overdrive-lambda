@@ -1,5 +1,6 @@
 package de.msg.iot.anki.rest;
 
+
 import de.msg.iot.anki.controller.kafka.KafkaScenarioController;
 import de.msg.iot.anki.controller.kafka.KafkaVehicleController;
 import de.msg.iot.anki.entity.Setup;
@@ -92,7 +93,7 @@ public class SetupRestHandler {
             return Response.status(response.getStatus()).build();
 
         try {
-            Vehicle vehicle = (Vehicle)response.getEntity();
+            Vehicle vehicle = response.readEntity(Vehicle.class);
             controller(vehicle.getUuid()).setSpeed(speed, acceleration);
             return Response.ok().build();
         } catch (Exception e) {
