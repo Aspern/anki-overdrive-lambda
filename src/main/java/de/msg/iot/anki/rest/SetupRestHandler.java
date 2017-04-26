@@ -92,7 +92,7 @@ public class SetupRestHandler {
             return Response.status(response.getStatus()).build();
 
         try {
-            Vehicle vehicle = response.readEntity(Vehicle.class);
+            Vehicle vehicle = (Vehicle)response.getEntity();
             controller(vehicle.getUuid()).setSpeed(speed, acceleration);
             return Response.ok().build();
         } catch (Exception e) {

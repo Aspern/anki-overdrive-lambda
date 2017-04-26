@@ -47,7 +47,6 @@ public class AggregateQualityForLocations {
         for (int j = 0, speed = 700; speed <= 1000; speed += 50, j++) {
 
 
-
             do {
                 final int id = piece.getId();
                 final int location = piece.lanes[15][i];
@@ -87,17 +86,21 @@ public class AggregateQualityForLocations {
         }
 
 
-
         MongoCollection collection1 = db.getCollection(AggregateQualityForLocations.class.getSimpleName());
         collection1.drop();
 
         store.forEach((position, list) -> {
             System.out.println(position);
             list.forEach(entry -> {
+                double quality = entry.getValue();
+                double label = 1.0;
+                if (quality < 0.85)
+                    label = 0.0;
                 Document document = new Document();
                 document.put("position", position);
                 document.put("speed", entry.getKey());
-                document.put("quality" ,  entry.getValue());
+                document.put("quality", quality);
+                document.put("label", label);
                 collection1.insertOne(document);
                 System.out.println(format.format(entry.getValue()));
             });
