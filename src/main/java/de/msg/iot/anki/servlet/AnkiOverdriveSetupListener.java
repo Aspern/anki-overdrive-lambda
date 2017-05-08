@@ -63,6 +63,7 @@ public class AnkiOverdriveSetupListener implements ServletContextListener {
             }
         };
 
+
         threadpool.submit(listener);
 
     }

@@ -2,10 +2,12 @@ package de.msg.iot.anki.batchlayer.ml;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import de.msg.iot.anki.settings.Settings;
 import de.msg.iot.anki.settings.properties.PropertiesSettings;
 import org.apache.log4j.Logger;
+import org.bson.Document;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -17,12 +19,14 @@ import org.elasticsearch.search.sort.SortOrder;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 
 import java.net.InetAddress;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class MessageQualityPreprocessor implements Runnable {
 
     private volatile boolean running = false;
     private final Logger logger = Logger.getLogger(MessageQualityPreprocessor.class);
-
 
     private Client elastic;
     private MongoClient mongo;
@@ -47,7 +51,6 @@ public class MessageQualityPreprocessor implements Runnable {
                     ));
         } catch (Exception e) {
             logger.error("Unexpected Error on startup", e);
-
         }
     }
 
@@ -59,11 +62,11 @@ public class MessageQualityPreprocessor implements Runnable {
         try {
 
             MongoDatabase db = mongo.getDatabase("anki");
-            MongoCollection table = db.getCollection(MessageQualityPreprocessor.class.getSimpleName());
-            table.drop();
+            MongoCollection collection = db.getCollection(MessageQualityPreprocessor.class.getSimpleName());
+            collection.drop();
             computation.onComputationFinished(basicDBObjects -> {
                 if (!basicDBObjects.isEmpty()) {
-                    table.insertMany(basicDBObjects);
+                    collection.insertMany(basicDBObjects);
                 }
 
             });
@@ -102,13 +105,25 @@ public class MessageQualityPreprocessor implements Runnable {
         } catch (Exception e) {
             logger.error("Unexpected Error while processing", e);
         }
-
-
     }
-
 
     public void stop() {
         logger.info("Stopped " + MessageQualityPreprocessor.class.getSimpleName() + ".");
         this.running = false;
+    }
+
+    public static void main(String[] args) throws Exception {
+        final ExecutorService pool = Executors.newSingleThreadExecutor();
+
+
+        MessageQualityPreprocessor preprocessor = new MessageQualityPreprocessor();
+        pool.execute(preprocessor);
+
+        Thread.sleep(2000);
+
+        pool.shutdown();
+        preprocessor.stop();
+
+        pool.awaitTermination(10, TimeUnit.MINUTES);
     }
 }

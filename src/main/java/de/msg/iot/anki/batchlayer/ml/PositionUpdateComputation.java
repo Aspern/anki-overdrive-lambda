@@ -69,8 +69,6 @@ public class PositionUpdateComputation implements BatchComputation {
             result.clear();
         }
 
-
-
         // Add each found data-row into round (result)
         Document document = new Document();
         document.put("timestamp", parseDate((String)source.get("timestamp")));

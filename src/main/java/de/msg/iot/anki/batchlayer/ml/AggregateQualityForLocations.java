@@ -1,8 +1,11 @@
 package de.msg.iot.anki.batchlayer.ml;
 
 
+import com.mongodb.Block;
+import com.mongodb.DBCursor;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
@@ -41,10 +44,11 @@ public class AggregateQualityForLocations {
         final Map<String, List<KeyValue<Integer, Double>>> store = new HashMap<>();
 
 
+
         Piece piece = track.getStart();
         int i = 0;
 
-        for (int j = 0, speed = 700; speed <= 1000; speed += 50, j++) {
+        for (int j = 0, speed = 700; speed <= 1000; speed += 10, j++) {
 
 
             do {
@@ -53,6 +57,8 @@ public class AggregateQualityForLocations {
                 final String position = id + ":" + location;
                 final AtomicInteger missing = new AtomicInteger();
                 final AtomicInteger total = new AtomicInteger();
+
+
 
                 collection.aggregate(
                         Arrays.asList(
@@ -67,6 +73,7 @@ public class AggregateQualityForLocations {
 
                 if (!store.containsKey(position))
                     store.put(position, new ArrayList<>());
+
 
                 store.get(position).add(new KeyValue<>(
                                 speed,
@@ -89,20 +96,34 @@ public class AggregateQualityForLocations {
         MongoCollection collection1 = db.getCollection(AggregateQualityForLocations.class.getSimpleName());
         collection1.drop();
 
+
         store.forEach((position, list) -> {
             System.out.println(position);
             list.forEach(entry -> {
                 double quality = entry.getValue();
                 double label = 1.0;
-                if (quality < 0.85)
+                String type = "";
+                String pieceId = position.split(":")[0];
+                switch (pieceId) {
+                    case "33":
+                    case "34":
+                    case "39":
+                        type = "straight";
+                        break;
+                    default:
+                        type = "curve";
+                }
+                if (quality < 0.95)
                     label = 0.0;
                 Document document = new Document();
                 document.put("position", position);
                 document.put("speed", entry.getKey());
                 document.put("quality", quality);
+                document.put("type", type);
                 document.put("label", label);
                 collection1.insertOne(document);
-                System.out.println(format.format(entry.getValue()));
+               System.out.println(format.format(entry.getValue()));
+
             });
             System.out.println();
         });

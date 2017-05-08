@@ -67,7 +67,7 @@ public class MLlib {
         trainingData.cache();
 
         LinearRegressionModel model = LinearRegressionWithSGD.train(trainingData.rdd(), 5000, 0.1);
-        System.out.println(model.predict(Vectors.dense(0.85, index.get("33:15"))));
+        System.out.println(model.predict(Vectors.dense(0.95, index.get("33:15"))));
 
 
     }

@@ -3,6 +3,7 @@ package de.msg.iot.anki.settings.properties;
 import de.msg.iot.anki.settings.Settings;
 import de.msg.iot.anki.settings.SettingsException;
 
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Properties;
 
@@ -17,10 +18,24 @@ public class PropertiesSettings implements Settings {
     public PropertiesSettings(String resource) {
         this(new Properties());
 
-        try (InputStream in = getClass().getClassLoader().getResourceAsStream(resource)) {
+        InputStream in = null;
+
+        try {
+            in = getClass().getClassLoader().getResourceAsStream(resource);
+            if (in == null) {
+                in = new FileInputStream("src/main/resources/" + resource);
+            }
             this.properties.load(in);
         } catch (Exception e) {
-            throw new SettingsException("Cannot load properties [" + resource + "].");
+            throw new SettingsException("Cannot load properties [" + resource + "].", e);
+        } finally {
+            if (in != null)
+                try {
+                    in.close();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
         }
     }
 

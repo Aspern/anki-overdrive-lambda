@@ -19,7 +19,7 @@ public interface Settings {
         try {
             return Integer.parseInt(value);
         } catch (NumberFormatException e) {
-            throw new SettingsException("Setting is no valid number [" + value + "].");
+            throw new SettingsException("Setting is no valid number [" + value + "].", e);
         }
     }
 
@@ -30,7 +30,7 @@ public interface Settings {
         try {
             return Long.parseLong(value);
         } catch (NumberFormatException e) {
-            throw new SettingsException("Setting is no valid number [" + value + "].");
+            throw new SettingsException("Setting is no valid number [" + value + "].", e);
         }
     }
 
@@ -41,7 +41,7 @@ public interface Settings {
         try {
             return Float.parseFloat(value);
         } catch (NumberFormatException e) {
-            throw new SettingsException("Setting is no valid number [" + value + "].");
+            throw new SettingsException("Setting is no valid number [" + value + "].", e);
         }
     }
 
@@ -52,7 +52,7 @@ public interface Settings {
         try {
             return Double.parseDouble(value);
         } catch (NumberFormatException e) {
-            throw new SettingsException("Setting is no valid number [" + value + "].");
+            throw new SettingsException("Setting is no valid number [" + value + "].", e);
         }
     }
 
