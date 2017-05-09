@@ -21,7 +21,7 @@ var myEl = angular.element( document.querySelector( '#terminal' ) );
 
 var portAddress = 'http://localhost:8080/anki/rest'
 var setupURL = portAddress + '/setup';
-var scenarioURL = portAddress+ '/setup'
+var scenarioURL = 'rest/setup/
 
 
 /* REST API URLS ends here*/
