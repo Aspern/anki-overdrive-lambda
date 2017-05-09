@@ -45,7 +45,7 @@ $scope.checkBoxClicked = function($checkbox,$index)
 
     for(var i=0; i<$scope.api_getSetup.length;i++)
     {
-        $scope.sendReq(scenarioURL+'/'+$scope.api_getSetup[i].uuid+'/scenario/'+$scope.scenarioArray[$index]+'/'+action);
+        $scope.sendReq(scenarioURL+'/'+$scope.api_getSetup[i].ean+'/scenario/'+$scope.scenarioArray[$index]+'/'+action);
     }
 
     $scope.updateTerminalStatus($scope.scenarioArray[$index], $checkbox);
