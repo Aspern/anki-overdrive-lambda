@@ -48,7 +48,7 @@ public class TestReceiver {
     static PrintWriter pw;
 
     public static void handleAntiCollision(String message){
-
+        System.out.println("in anti collo method");
         Float distance = getDistanceFromJson(message, "horizontal");  //get Horizontal distance
         if (distance <= 500)
             brake(message);
@@ -83,7 +83,8 @@ public class TestReceiver {
                             "0.08" +     //acceleration
                             "]" +
                           "}";
-        producer.sendMessage(response);
+        System.out.println("speeding up");
+        producer.sendMessage(response, "test");
         producer.sendMessage(response, getCarIdFromJson(message));
     }
 
@@ -96,7 +97,8 @@ public class TestReceiver {
                 "250" +     //acceleration
                 "]" +
                 "}";
-        producer.sendMessage(response);
+        System.out.println("driving normal");
+        producer.sendMessage(response, "test");
         producer.sendMessage(response, getCarIdFromJson(message));
     }
 
@@ -107,7 +109,8 @@ public class TestReceiver {
                             "0.15" +
                             "]" +
                           "}";
-        producer.sendMessage(response);
+        System.out.println("applying brake");
+        producer.sendMessage(response, "test");
         producer.sendMessage(response, getCarIdFromJson(message));
     }
 
@@ -214,7 +217,9 @@ public class TestReceiver {
         Map<String,Integer> topicMap=new HashMap<>();
         topicMap.put(topic,1);
 
-        /*
+
+
+       /*
         * Create kafka stream to receive messages
         * */
         JavaPairReceiverInputDStream<String, String> kafkaStream=KafkaUtils.createStream(
@@ -229,14 +234,8 @@ public class TestReceiver {
         );
 
 
-        /*
-        * Get only the value from stream and meanwhile save message in the mysql aswell
-        * */
         JavaDStream<String> str = kafkaStream.map(a -> a._2().toString());
 
-        /*
-        * Filter out the messages which contains the distances
-         */
         JavaDStream<String> batteryMessagesStream = str.filter(a -> {
             Integer messageId = getMessageIdFromJson(a);
             if(messageId != null && messageId == 27){
@@ -247,19 +246,14 @@ public class TestReceiver {
             }
         });
 
+
         JavaDStream<String> bstr = batteryMessagesStream.map(a -> {
             batteryLevel = getBatteryLevelFromJson(a);
             System.out.println("Battery is : " + batteryLevel);
             return a;
         });
 
-        bstr.print();
 
-
-
-        /*
-        * Filter out the messages which contains the distances
-         */
         JavaDStream<String> speedMessagesStream = str.filter(a -> {
             Integer messageId = getMessageIdFromJson(a);
             if(messageId != null && messageId == 39){
@@ -267,9 +261,9 @@ public class TestReceiver {
                     is34 = !is34;
                     if(is34){
                         roundNumber++;
-                        return Boolean.TRUE;
+                        //return Boolean.TRUE;
                     }
-                    return Boolean.FALSE;
+                    return Boolean.TRUE;
                 }
                 return Boolean.FALSE;
             }
@@ -277,22 +271,32 @@ public class TestReceiver {
                 return Boolean.FALSE;
             }
         });
+        *//*
 
         pw = null;
         try {
-            pw = new PrintWriter(new File("/home/msg/Documents/BatteryLevel.csv"));
+            pw = new PrintWriter(new File("/home/msg/Documents/BatteryLevel_500_skull.csv"));
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
         StringBuilder sb = new StringBuilder();
 
-        JavaDStream<String> str1 = speedMessagesStream.map(a -> {
+        JavaDStream<String> str1 = str.map(a -> {
 
-            sb.append(BLUE_VEHICLE_ID);
+            if(getPieceFromJson(a) == 34) {
+                is34 = !is34;
+                if (is34) {
+                    roundNumber++;
+                }
+            }
+
+            sb.append(RED_VEHICLE_ID);
             sb.append(',');
             sb.append(roundNumber);
             sb.append(',');
-            sb.append(batteryLevel);
+            sb.append(getPieceFromJson(a));
+            sb.append(',');
+            sb.append(getBatteryLevelFromJson(a));
             sb.append(',');
             sb.append(getSpeedFromJson(a));
             sb.append('\n');
@@ -304,9 +308,6 @@ public class TestReceiver {
 
         str1.print();
 
-        /*
-        * check for the distance and invoke anti-collision
-        * */
         JavaDStream<String> antiCollision = speedMessagesStream.map(x -> {
             Float delta = getDistanceFromJson(x.toString(), "delta");
             Float verticalDistance = getDistanceFromJson(x.toString(), "vertical");
@@ -324,15 +325,14 @@ public class TestReceiver {
             return x;
         });
 
-        //antiCollision.print();
 
-        // Start the computation
         jssc.start();
 
         // Don't stop the execution until user explicitly stops or we can pass the duration for the execution
         try {
             jssc.awaitTermination();
             producer.close();
+
             pw.close();
         } catch (InterruptedException e) {
             e.printStackTrace();
